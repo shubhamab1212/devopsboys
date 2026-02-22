@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#0b0b0f" />
+
+  <title>DevOps Boys — Learn DevOps Like Real Production</title>
+  <meta name="description" content="DevOps Boys: Kubernetes, CI/CD, AWS, Terraform, Monitoring — practical content, real production lessons, and fast learning." />
+  <meta name="keywords" content="DevOps, Kubernetes, CI/CD, AWS, Terraform, Jenkins, GitHub Actions, Prometheus, Grafana" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="DevOps Boys — Learn DevOps Like Real Production" />
+  <meta property="og:description" content="Practical DevOps content: Kubernetes, CI/CD, Cloud, Monitoring." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="assets/og.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <!-- Top glow -->
+  <div class="bg-glow" aria-hidden="true"></div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="container header-row">
+      <a class="brand" href="#top" aria-label="DevOps Boys Home">
+        <span class="brand-mark">DB</span>
+        <span class="brand-text">
+          <span class="brand-name">DevOps Boys</span>
+          <span class="brand-tag">Ship • Scale • Sleep</span>
+        </span>
+      </a>
+
+      <nav class="nav" aria-label="Primary">
+        <a href="#learn">Learn</a>
+        <a href="#tracks">Tracks</a>
+        <a href="#projects">Projects</a>
+        <a href="#about">About</a>
+        <a href="#contact" class="btn btn-sm btn-outline">Contact</a>
+      </nav>
+
+      <button class="hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+
+    <div class="mobile-nav" id="mobileNav" aria-hidden="true">
+      <a href="#learn">Learn</a>
+      <a href="#tracks">Tracks</a>
+      <a href="#projects">Projects</a>
+      <a href="#about">About</a>
+      <a href="#contact" class="btn btn-outline">Contact</a>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <main id="top">
+    <section class="hero">
+      <div class="container hero-grid">
+        <div class="hero-left">
+          <div class="pill">
+            <span class="dot"></span>
+            <span>Real DevOps. Real Production Lessons.</span>
+          </div>
+
+          <h1 class="hero-title">
+            Build <span class="accent">DevOps Skills</span> that
+            companies actually <span class="accent">hire</span> for.
+          </h1>
+
+          <p class="hero-sub">
+            Kubernetes • CI/CD • Cloud • Observability — short, practical content + real debugging mindset.
+            No fluff. Only execution.
+          </p>
+
+          <div class="hero-cta">
+            <a class="btn btn-lg" href="#tracks">Explore Tracks</a>
+            <a class="btn btn-lg btn-outline" href="#projects">See Projects</a>
+          </div>
+
+          <div class="stats">
+            <div class="stat">
+              <div class="stat-num" data-count="6000">0</div>
+              <div class="stat-label">Community Followers</div>
+            </div>
+            <div class="stat">
+              <div class="stat-num" data-count="50">0</div>
+              <div class="stat-label">Mini Lessons</div>
+            </div>
+            <div class="stat">
+              <div class="stat-num" data-count="12">0</div>
+              <div class="stat-label">Hands-on Labs</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-right">
+          <div class="card code-card">
+            <div class="code-head">
+              <span class="traffic red"></span>
+              <span class="traffic yellow"></span>
+              <span class="traffic green"></span>
+              <span class="code-title">prod-debug.session</span>
+            </div>
+
+            <pre class="code-block" aria-label="DevOps code example">
+<span class="k">kubectl</span> <span class="k">get</span> pods -n app
+<span class="s">CrashLoopBackOff</span>  → not the real problem
+
+<span class="k">kubectl</span> <span class="k">logs</span> app-7c8... -n app --previous
+<span class="c"># Root cause:</span> DB pool exhausted (timeouts)
+
+<span class="k">kubectl</span> <span class="k">describe</span> pod app-7c8... -n app
+<span class="c"># Fix:</span> resource limits + HPA + readiness probes
+            </pre>
+
+            <div class="code-foot">
+              <div class="chip">Kubernetes</div>
+              <div class="chip">CI/CD</div>
+              <div class="chip">Observability</div>
+              <div class="chip">Troubleshooting</div>
+            </div>
+          </div>
+
+          <div class="floating">
+            <div class="badge">
+              <span class="badge-icon">⚡</span>
+              <div>
+                <div class="badge-title">Fast Learning</div>
+                <div class="badge-sub">Short + Practical</div>
+              </div>
+            </div>
+            <div class="badge">
+              <span class="badge-icon">🛡️</span>
+              <div>
+                <div class="badge-title">Production Mindset</div>
+                <div class="badge-sub">Debug like SRE</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Learn -->
+    <section id="learn" class="section">
+      <div class="container">
+        <div class="section-head">
+          <h2>Learn the right way</h2>
+          <p>Small concepts, real examples, and repeatable playbooks.</p>
+        </div>
+
+        <div class="grid-3">
+          <article class="feature">
+            <div class="feature-icon">🧠</div>
+            <h3>Simple explanations</h3>
+            <p>Hard topics explained in simple Hinglish + visuals so you remember.</p>
+          </article>
+
+          <article class="feature">
+            <div class="feature-icon">🧩</div>
+            <h3>Hands-on labs</h3>
+            <p>Mini labs that build confidence: Ingress, HPA, RBAC, PV/PVC, etc.</p>
+          </article>
+
+          <article class="feature">
+            <div class="feature-icon">🔍</div>
+            <h3>Real troubleshooting</h3>
+            <p>504s, CrashLoops, Kafka issues, storage full, network — all practical.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tracks -->
+    <section id="tracks" class="section section-alt">
+      <div class="container">
+        <div class="section-head">
+          <h2>Tracks</h2>
+          <p>Pick one track and go deep. No confusion.</p>
+        </div>
+
+        <div class="grid-3">
+          <div class="track">
+            <div class="track-top">
+              <h3>Kubernetes Mastery</h3>
+              <span class="tag">Popular</span>
+            </div>
+            <ul>
+              <li>Core objects + YAML patterns</li>
+              <li>Ingress, Networking basics</li>
+              <li>HPA, Requests/Limits</li>
+              <li>PV/PVC, Stateful apps</li>
+            </ul>
+            <a class="btn btn-outline w-100" href="#contact">Get updates</a>
+          </div>
+
+          <div class="track">
+            <div class="track-top">
+              <h3>CI/CD & GitOps</h3>
+              <span class="tag">Pro</span>
+            </div>
+            <ul>
+              <li>GitHub Actions / Jenkins</li>
+              <li>Helm charts best practices</li>
+              <li>ArgoCD sync strategies</li>
+              <li>Release & rollback playbooks</li>
+            </ul>
+            <a class="btn btn-outline w-100" href="#contact">Get updates</a>
+          </div>
+
+          <div class="track">
+            <div class="track-top">
+              <h3>Observability</h3>
+              <span class="tag">Hot</span>
+            </div>
+            <ul>
+              <li>Prometheus + Grafana</li>
+              <li>Alerts that actually work</li>
+              <li>Tracing (Jaeger/OTEL)</li>
+              <li>Dashboards for incidents</li>
+            </ul>
+            <a class="btn btn-outline w-100" href="#contact">Get updates</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Projects -->
+    <section id="projects" class="section">
+      <div class="container">
+        <div class="section-head">
+          <h2>Projects (Portfolio-ready)</h2>
+          <p>Real projects that look strong on resume + interviews.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="project">
+            <h3>End-to-end GitOps Kubernetes App</h3>
+            <p>Helm chart + ArgoCD + monitoring + rollout strategy. Production style repo.</p>
+            <div class="project-meta">
+              <span class="pill2">Helm</span>
+              <span class="pill2">ArgoCD</span>
+              <span class="pill2">K8s</span>
+            </div>
+          </div>
+
+          <div class="project">
+            <h3>Observability Starter Pack</h3>
+            <p>Prometheus alerts, Grafana dashboards, SLO mindset, incident checklist.</p>
+            <div class="project-meta">
+              <span class="pill2">Prometheus</span>
+              <span class="pill2">Grafana</span>
+              <span class="pill2">SRE</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- About -->
+    <section id="about" class="section section-alt">
+      <div class="container about">
+        <div class="about-left">
+          <h2>About DevOps Boys</h2>
+          <p>
+            DevOps Boys is built for people who want to learn DevOps the practical way:
+            by building, breaking, and fixing systems — the way it happens in production.
+          </p>
+          <p class="muted">
+            Goal: make you job-ready with real skills: Kubernetes, CI/CD, Cloud, Monitoring, Debugging.
+          </p>
+        </div>
+
+        <div class="about-right">
+          <div class="quote">
+            <div class="quote-mark">“</div>
+            <p>
+              CrashLoopBackOff is not the issue — it’s the symptom.
+              We teach you how to find the real root cause.
+            </p>
+            <div class="quote-by">— DevOps Boys</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contact -->
+    <section id="contact" class="section">
+      <div class="container">
+        <div class="contact-card">
+          <div>
+            <h2>Want updates & resources?</h2>
+            <p class="muted">Drop your email. I’ll share new posts, labs, and templates.</p>
+          </div>
+
+          <!-- No backend needed: opens mail client -->
+          <form class="form" id="contactForm">
+            <input type="email" id="email" placeholder="your@email.com" required />
+            <button type="submit" class="btn">Send</button>
+          </form>
+
+          <div class="contact-links">
+            <a href="#" class="link" id="instaLink">Instagram</a>
+            <a href="#" class="link" id="ytLink">YouTube</a>
+            <a href="#" class="link" id="xLink">X (Twitter)</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="container footer-row">
+        <div class="footer-left">
+          <span class="brand-mark sm">DB</span>
+          <span>© <span id="year"></span> DevOps Boys. All rights reserved.</span>
+        </div>
+        <div class="footer-right">
+          <a href="#top">Back to top ↑</a>
+        </div>
+      </div>
+    </footer>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
