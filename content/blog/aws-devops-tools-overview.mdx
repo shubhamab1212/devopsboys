@@ -1,0 +1,195 @@
+---
+title: "AWS DevOps Tools - CodePipeline se EKS tak Complete Overview"
+description: "AWS ke top DevOps services ko samjho - CI/CD, Container Orchestration, Monitoring, aur Infrastructure as Code."
+date: 2026-02-10
+published: true
+tags: ["aws", "devops", "cloud", "cicd", "eks"]
+author: "DevOpsBoys"
+---
+
+## AWS DevOps Ecosystem
+
+AWS ke paas DevOps ke liye ek complete suite hai. Chalo ek ek karke samjhte hain:
+
+## CI/CD Pipeline
+
+### AWS CodePipeline
+
+```
+Source (CodeCommit/GitHub)
+    → Build (CodeBuild)
+    → Test (CodeBuild)
+    → Deploy (CodeDeploy/ECS/EKS)
+```
+
+### buildspec.yml - CodeBuild Configuration
+
+```yaml
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+
+  build:
+    commands:
+      - echo Build started on `date`
+      - docker build -t $IMAGE_REPO_NAME:$IMAGE_TAG .
+      - docker tag $IMAGE_REPO_NAME:$IMAGE_TAG $ECR_REGISTRY/$IMAGE_REPO_NAME:$IMAGE_TAG
+
+  post_build:
+    commands:
+      - docker push $ECR_REGISTRY/$IMAGE_REPO_NAME:$IMAGE_TAG
+      - echo Writing image definitions file...
+      - printf '[{"name":"app","imageUri":"%s"}]' $ECR_REGISTRY/$IMAGE_REPO_NAME:$IMAGE_TAG > imagedefinitions.json
+
+artifacts:
+  files: imagedefinitions.json
+```
+
+## Container Services
+
+| Service | Use Case |
+|---------|----------|
+| **ECS** | Simpler container orchestration |
+| **EKS** | Managed Kubernetes |
+| **ECR** | Container image registry |
+| **Fargate** | Serverless containers |
+
+### ECS Task Definition
+
+```json
+{
+  "family": "my-app",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "containerDefinitions": [
+    {
+      "name": "app",
+      "image": "123456789.dkr.ecr.us-east-1.amazonaws.com/my-app:latest",
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "protocol": "tcp"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/my-app",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}
+```
+
+## Infrastructure as Code
+
+### Terraform - AWS Infrastructure
+
+```hcl
+# VPC create karo
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
+
+  tags = {
+    Name = "devopsboys-vpc"
+  }
+}
+
+# EKS Cluster
+module "eks" {
+  source  = "terraform-aws-modules/eks/aws"
+  version = "~> 20.0"
+
+  cluster_name    = "devopsboys-cluster"
+  cluster_version = "1.29"
+
+  vpc_id     = aws_vpc.main.id
+  subnet_ids = aws_subnet.private[*].id
+
+  eks_managed_node_groups = {
+    general = {
+      instance_types = ["t3.medium"]
+      min_size       = 1
+      max_size       = 3
+      desired_size   = 2
+    }
+  }
+}
+```
+
+```bash
+# Deploy karo
+terraform init
+terraform plan
+terraform apply
+```
+
+## Monitoring & Observability
+
+### CloudWatch Dashboard
+
+```bash
+# Metric alarm create karo
+aws cloudwatch put-metric-alarm \
+  --alarm-name "HighCPU" \
+  --alarm-description "CPU > 80%" \
+  --metric-name CPUUtilization \
+  --namespace AWS/EC2 \
+  --threshold 80 \
+  --comparison-operator GreaterThanThreshold \
+  --evaluation-periods 2 \
+  --period 300 \
+  --statistic Average \
+  --alarm-actions arn:aws:sns:us-east-1:123456789:alert-topic
+```
+
+### AWS Cost Optimization Tips
+
+1. **Spot Instances** - 90% cheaper for non-critical workloads
+2. **Reserved Instances** - 1-3 year commit, 40-60% savings
+3. **S3 Lifecycle Policies** - Old data cheaper storage
+4. **Auto Scaling** - Scale down when not needed
+
+## Security Best Practices
+
+```bash
+# IAM Role - Least Privilege
+aws iam create-role \
+  --role-name devopsboys-app-role \
+  --assume-role-policy-document file://trust-policy.json
+
+# Secrets Manager use karo (never hardcode!)
+aws secretsmanager create-secret \
+  --name prod/myapp/database \
+  --secret-string '{"username":"admin","password":"super-secret"}'
+
+# Application mein use karo
+aws secretsmanager get-secret-value \
+  --secret-id prod/myapp/database \
+  --query SecretString \
+  --output text
+```
+
+## Quick Reference
+
+```bash
+# EKS cluster connect karo
+aws eks update-kubeconfig --region us-east-1 --name devopsboys-cluster
+
+# ECR login
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 123456789.dkr.ecr.us-east-1.amazonaws.com
+
+# ECS service update (new deployment)
+aws ecs update-service --cluster my-cluster --service my-service --force-new-deployment
+```
+
+AWS DevOps ek bada topic hai - agla blog mein EKS pe deep dive karenge! ☁️

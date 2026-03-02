@@ -1,0 +1,202 @@
+---
+title: "Kubernetes Architecture - Poora System Samjho Ek Diagram Se"
+description: "Kubernetes ke har component ko simple language mein samjho - Control Plane, Worker Nodes, Pods, Services sab kuch."
+date: 2026-02-20
+published: true
+tags: ["kubernetes", "k8s", "devops", "cloud", "orchestration"]
+author: "DevOpsBoys"
+---
+
+## Kubernetes Kyun Chahiye?
+
+Docker se ek container run kar sakte ho. Lekin agar 100 containers hain? 1000 hain? Koi crash ho jaye toh? Load balance kaise karein?
+
+**Kubernetes (K8s)** in sab problems solve karta hai - yeh ek **container orchestration platform** hai.
+
+## High-Level Architecture
+
+```
+┌─────────────────────────────────────────────┐
+│              KUBERNETES CLUSTER              │
+│                                             │
+│  ┌──────────────────┐  ┌────────────────┐  │
+│  │  CONTROL PLANE   │  │  WORKER NODES  │  │
+│  │                  │  │                │  │
+│  │  ┌─────────────┐ │  │  ┌──────────┐ │  │
+│  │  │ API Server  │ │  │  │  Pod     │ │  │
+│  │  └─────────────┘ │  │  │ ┌──────┐ │ │  │
+│  │  ┌─────────────┐ │  │  │ │ App  │ │ │  │
+│  │  │    etcd     │ │  │  │ └──────┘ │ │  │
+│  │  └─────────────┘ │  │  └──────────┘ │  │
+│  │  ┌─────────────┐ │  │               │  │
+│  │  │  Scheduler  │ │  │  ┌──────────┐ │  │
+│  │  └─────────────┘ │  │  │  Pod     │ │  │
+│  │  ┌─────────────┐ │  │  └──────────┘ │  │
+│  │  │  Controller │ │  └────────────────┘  │
+│  │  │  Manager   │ │                       │
+│  │  └─────────────┘ │                       │
+│  └──────────────────┘                       │
+└─────────────────────────────────────────────┘
+```
+
+## Control Plane Components
+
+### 1. API Server
+Kubernetes ka **brain** - sab communication yahan se hoti hai.
+
+```bash
+# Sab kubectl commands yahan jaati hain
+kubectl get pods  # → API Server → etcd
+```
+
+### 2. etcd
+Cluster ka **memory** - key-value store jahan sab data store hota hai.
+
+- Highly available
+- Distributed
+- Consistent
+
+### 3. Scheduler
+Naye Pods ko decide karta hai ki **kis Node pe run karein**.
+
+Criteria:
+- Resource availability (CPU/Memory)
+- Node affinity rules
+- Taints and tolerations
+
+### 4. Controller Manager
+Different controllers run karta hai:
+
+- **Deployment Controller** - Desired state maintain karta hai
+- **Node Controller** - Node health monitor karta hai
+- **Service Controller** - Load balancers manage karta hai
+
+## Worker Node Components
+
+### kubelet
+Har node pe running agent - Control Plane ke saath baat karta hai.
+
+```bash
+# Node pe kubelet status check karo
+systemctl status kubelet
+```
+
+### kube-proxy
+Network rules manage karta hai - Services ko Pods se connect karta hai.
+
+### Container Runtime
+Actually containers run karta hai - usually **containerd**.
+
+## Core Kubernetes Objects
+
+### Pod - Sabse Chota Unit
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-app
+spec:
+  containers:
+  - name: app
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+    resources:
+      requests:
+        memory: "64Mi"
+        cpu: "250m"
+      limits:
+        memory: "128Mi"
+        cpu: "500m"
+```
+
+### Deployment - Pods Manage Karo
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  replicas: 3          # 3 copies chahiye
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: app
+        image: my-app:v2
+```
+
+Deploy karo:
+
+```bash
+kubectl apply -f deployment.yaml
+
+# Status dekho
+kubectl get deployments
+kubectl get pods
+
+# Rolling update karo
+kubectl set image deployment/my-app app=my-app:v3
+
+# Rollback karo
+kubectl rollout undo deployment/my-app
+```
+
+### Service - Traffic Route Karo
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app-service
+spec:
+  selector:
+    app: my-app
+  ports:
+  - port: 80
+    targetPort: 80
+  type: LoadBalancer    # ClusterIP, NodePort, LoadBalancer
+```
+
+## Useful kubectl Commands
+
+```bash
+# Sab resources dekho
+kubectl get all -n default
+
+# Pod logs dekho
+kubectl logs -f pod/my-app-xyz
+
+# Pod mein enter karo
+kubectl exec -it pod/my-app-xyz -- /bin/bash
+
+# Resource usage dekho
+kubectl top pods
+kubectl top nodes
+
+# Describe karo (troubleshooting ke liye)
+kubectl describe pod my-app-xyz
+
+# Apply changes
+kubectl apply -f manifest.yaml
+
+# Delete karo
+kubectl delete -f manifest.yaml
+```
+
+## Next Steps
+
+1. **Helm** - Kubernetes package manager
+2. **Ingress** - HTTP routing
+3. **ConfigMaps & Secrets** - Configuration management
+4. **Persistent Volumes** - Storage management
+5. **RBAC** - Access control
+
+Kubernetes thoda complex lagta hai shuru mein, lekin ek baar samajh aa gaya toh DevOps ka sabse powerful tool hai! 💪

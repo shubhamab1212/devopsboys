@@ -1,0 +1,171 @@
+---
+title: "Docker Complete Beginners Guide - Containers Samjho Ek Baar Mein"
+description: "Docker kya hai, kyun use karte hain, aur kaise start karein - ek simple Hindi-English guide for DevOps beginners."
+date: 2026-03-01
+published: true
+tags: ["docker", "devops", "containers", "beginners"]
+author: "DevOpsBoys"
+---
+
+## Docker Kya Hai?
+
+Docker ek **containerization platform** hai. Sochlo ek shipping container - usme kuch bhi pack karo aur duniya mein kahin bhi ship karo. Same concept code ke liye.
+
+> **Simple definition:** Docker apki application ko uski saari dependencies ke saath ek "container" mein band kar deta hai - jo kahin bhi same tarike se run hoga.
+
+## Kyun Docker Use Karte Hain?
+
+Purani duniya mein problem thi - *"My machine pe toh chal raha tha!"* 😅
+
+Docker ne is problem solve ki:
+
+- **Consistency** - Dev, staging, production - sab ek jaisa environment
+- **Isolation** - Ek app ka dusre pe koi effect nahi
+- **Portability** - Laptop se cloud tak, kahin bhi run karo
+- **Speed** - Virtual machines se kaafi fast
+
+## Installation
+
+```bash
+# Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install docker-ce docker-ce-cli containerd.io
+
+# Mac/Windows - Docker Desktop download karo
+# https://www.docker.com/products/docker-desktop
+```
+
+Verify karo:
+
+```bash
+docker --version
+# Docker version 25.0.0, build abc1234
+
+docker run hello-world
+```
+
+## Basic Commands
+
+```bash
+# Images list karo
+docker images
+
+# Container run karo
+docker run nginx
+
+# Background mein run karo (-d = detached)
+docker run -d -p 80:80 nginx
+
+# Running containers dekho
+docker ps
+
+# Sab containers dekho (stopped bhi)
+docker ps -a
+
+# Container stop karo
+docker stop <container_id>
+
+# Container delete karo
+docker rm <container_id>
+
+# Image delete karo
+docker rmi nginx
+```
+
+## Apna Pehla Dockerfile
+
+Ek simple Node.js app ke liye:
+
+```dockerfile
+# Base image
+FROM node:20-alpine
+
+# Working directory set karo
+WORKDIR /app
+
+# Dependencies copy karo
+COPY package*.json ./
+
+# Install karo
+RUN npm install
+
+# Source code copy karo
+COPY . .
+
+# Port expose karo
+EXPOSE 3000
+
+# App start karo
+CMD ["node", "server.js"]
+```
+
+Build aur run karo:
+
+```bash
+# Image build karo
+docker build -t my-app:v1 .
+
+# Container run karo
+docker run -d -p 3000:3000 my-app:v1
+```
+
+## Docker Compose - Multiple Services
+
+Real projects mein usually multiple services hoti hain. Docker Compose se sab ek saath manage karo:
+
+```yaml
+# docker-compose.yml
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgresql://user:pass@db:5432/mydb
+
+  db:
+    image: postgres:16
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+      - POSTGRES_DB=mydb
+
+volumes:
+  postgres_data:
+```
+
+```bash
+# Sab start karo
+docker compose up -d
+
+# Logs dekho
+docker compose logs -f
+
+# Sab stop karo
+docker compose down
+```
+
+## Next Steps
+
+1. **Docker Volumes** - Data persist karna seekho
+2. **Docker Networks** - Containers ke beech communication
+3. **Docker Registry** - Images push/pull karna (Docker Hub, ECR)
+4. **Kubernetes** - Docker ko scale karna
+
+## Summary
+
+| Command | Kya Karta Hai |
+|---------|--------------|
+| `docker run` | Container start karta hai |
+| `docker build` | Image banata hai |
+| `docker push` | Registry pe upload karta hai |
+| `docker pull` | Registry se download karta hai |
+| `docker ps` | Running containers dikhata hai |
+
+Docker DevOps ka foundation hai. Isko acche se samajh lo, baki sab easy ho jayega! 🚀
