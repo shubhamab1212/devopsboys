@@ -21,8 +21,8 @@ export const metadata: Metadata = {
     template: "%s | DevOpsBoys",
   },
   description:
-    "DevOps, Cloud, AI aur ML ke baare mein practical guides, tutorials aur tips. Docker, Kubernetes, AWS, CI/CD aur bahut kuch.",
-  keywords: ["devops", "docker", "kubernetes", "aws", "cloud", "ai", "ml", "cicd", "hindi"],
+    "In-depth guides on DevOps, Cloud engineering, Docker, Kubernetes, AWS, CI/CD, AI and ML. Practical tutorials written by engineers, for engineers.",
+  keywords: ["devops", "docker", "kubernetes", "aws", "cloud", "ai", "ml", "cicd", "terraform", "gitops", "platform engineering"],
   authors: [{ name: "DevOpsBoys" }],
   creator: "DevOpsBoys",
   openGraph: {
@@ -31,13 +31,13 @@ export const metadata: Metadata = {
     url: "https://devopsboys.com",
     title: "DevOpsBoys - DevOps, Cloud, AI & ML Tutorials",
     description:
-      "DevOps, Cloud, AI aur ML ke baare mein practical guides aur tutorials.",
+      "In-depth guides on DevOps, Cloud, Docker, Kubernetes, AWS, CI/CD, and AI/ML.",
     siteName: "DevOpsBoys",
   },
   twitter: {
     card: "summary_large_image",
     title: "DevOpsBoys",
-    description: "DevOps, Cloud, AI aur ML ke practical tutorials.",
+    description: "Practical DevOps, Cloud, and AI/ML engineering guides.",
     creator: "@devopsboys",
   },
   robots: {

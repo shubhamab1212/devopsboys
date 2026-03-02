@@ -5,7 +5,7 @@ import type { Metadata } from "next"
 
 export const metadata: Metadata = {
   title: "Blog",
-  description: "DevOps, Cloud, AI aur ML ke saare articles aur tutorials.",
+  description: "All articles on DevOps, Cloud, Docker, Kubernetes, AWS, CI/CD, AI and ML.",
 }
 
 export default function BlogPage() {
@@ -21,9 +21,10 @@ export default function BlogPage() {
     <div className="container mx-auto max-w-6xl px-4 py-16">
       {/* Header */}
       <div className="mb-12">
-        <h1 className="text-4xl font-extrabold mb-3">All Posts</h1>
+        <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-2">All Articles</p>
+        <h1 className="text-4xl font-extrabold mb-3">Blog</h1>
         <p className="text-muted-foreground text-lg">
-          {publishedPosts.length} articles on DevOps, Cloud, AI &amp; ML
+          {publishedPosts.length} in-depth articles on DevOps, Cloud, AI &amp; ML
         </p>
       </div>
 
@@ -66,7 +67,7 @@ export default function BlogPage() {
         </div>
       ) : (
         <div className="text-center py-20 text-muted-foreground">
-          <p className="text-lg">Koi posts nahi mile.</p>
+          <p className="text-lg">No posts found.</p>
         </div>
       )}
     </div>

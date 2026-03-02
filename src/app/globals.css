@@ -134,6 +134,115 @@
   ::selection { background: oklch(0.6 0.15 250 / 0.3); }
 }
 
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33% { transform: translateY(-18px) rotate(1deg); }
+  66% { transform: translateY(-8px) rotate(-1deg); }
+}
+@keyframes float-delayed {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33% { transform: translateY(-12px) rotate(-1deg); }
+  66% { transform: translateY(-22px) rotate(1deg); }
+}
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.65; transform: scale(1.05); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes border-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-float { animation: float 8s ease-in-out infinite; }
+.animate-float-delayed { animation: float-delayed 10s ease-in-out infinite; }
+.animate-float-slow { animation: float 14s ease-in-out infinite; }
+.animate-pulse-glow { animation: pulse-glow 4s ease-in-out infinite; }
+.animate-shimmer { animation: shimmer 3s linear infinite; }
+.animate-fade-up { animation: fade-up 0.6s ease-out forwards; }
+.animate-fade-in { animation: fade-in 0.4s ease-out forwards; }
+.animate-slide-down { animation: slide-down 0.3s ease-out forwards; }
+
+/* Staggered fade-up delays */
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
+
+/* ============================================
+   SPECIAL EFFECTS
+   ============================================ */
+
+/* Dot grid background */
+.bg-dot-grid {
+  background-image: radial-gradient(circle, oklch(0.5 0 0 / 0.15) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+.dark .bg-dot-grid {
+  background-image: radial-gradient(circle, oklch(1 0 0 / 0.06) 1px, transparent 1px);
+}
+
+/* Shimmer gradient text */
+.text-shimmer {
+  background: linear-gradient(
+    90deg,
+    oklch(0.65 0.2 250),
+    oklch(0.7 0.22 290),
+    oklch(0.65 0.2 200),
+    oklch(0.65 0.2 250)
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 4s linear infinite;
+}
+
+/* Glow card border */
+.glow-card {
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.glow-card:hover {
+  border-color: oklch(0.65 0.15 250 / 0.6);
+  box-shadow: 0 0 20px oklch(0.65 0.15 250 / 0.12), 0 8px 32px oklch(0 0 0 / 0.15);
+}
+
+/* Gradient border top on cards */
+.gradient-top::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, oklch(0.65 0.2 250), oklch(0.7 0.22 290), oklch(0.65 0.2 200));
+  border-radius: 0.75rem 0.75rem 0 0;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.gradient-top:hover::before { opacity: 1; }
+
 /* Prose / Blog content styles */
 .prose {
   color: var(--foreground);

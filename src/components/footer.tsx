@@ -18,7 +18,7 @@ export function Footer() {
               </span>
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              DevOps, Cloud, AI aur ML ke baare mein practical guides aur tutorials. Real world experience se seekho.
+              Practical guides on DevOps, Cloud, Docker, Kubernetes, AWS, and AI/ML. Real engineering knowledge, clearly explained.
             </p>
           </div>
 
@@ -64,7 +64,7 @@ export function Footer() {
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} DevOpsBoys. Sab rights reserved.
+            © {new Date().getFullYear()} DevOpsBoys. All rights reserved.
           </p>
           <div className="flex items-center gap-3">
             <Link

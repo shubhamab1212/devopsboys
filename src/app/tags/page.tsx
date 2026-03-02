@@ -5,7 +5,7 @@ import type { Metadata } from "next"
 
 export const metadata: Metadata = {
   title: "Tags",
-  description: "DevOpsBoys ke saare tags browse karo.",
+  description: "Browse all topics on DevOpsBoys — Docker, Kubernetes, AWS, CI/CD, AI/ML, and more.",
 }
 
 export default function TagsPage() {
@@ -23,9 +23,10 @@ export default function TagsPage() {
   return (
     <div className="container mx-auto max-w-6xl px-4 py-16">
       <div className="mb-12">
+        <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-2">Browse by Topic</p>
         <h1 className="text-4xl font-extrabold mb-3">All Tags</h1>
         <p className="text-muted-foreground text-lg">
-          {sortedTags.length} tags across {publishedPosts.length} articles
+          {sortedTags.length} topics across {publishedPosts.length} articles
         </p>
       </div>
 

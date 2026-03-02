@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { tag } = await params
   return {
     title: `${tag} - Posts`,
-    description: `DevOpsBoys pe ${tag} ke saare articles.`,
+    description: `All articles tagged with "${tag}" on DevOpsBoys.`,
   }
 }
 
