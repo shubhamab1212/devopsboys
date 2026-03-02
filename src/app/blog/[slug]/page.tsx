@@ -3,6 +3,11 @@ import { MDXContent } from "@/components/mdx-components"
 import { TableOfContents } from "@/components/toc"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { PostCard } from "@/components/post-card"
+import { ReadingProgress } from "@/components/reading-progress"
+import { ShareButtons } from "@/components/share-buttons"
+import { BackToTop } from "@/components/back-to-top"
+import { NewsletterCTA } from "@/components/newsletter-cta"
 import { formatDate, getReadingTime } from "@/lib/utils"
 import { Calendar, Clock, ArrowLeft, User } from "lucide-react"
 import type { Metadata } from "next"
@@ -18,6 +23,19 @@ interface PageProps {
 
 function getPostBySlug(slug: string) {
   return posts.find((post) => post.slugAsParams === slug && post.published)
+}
+
+function getRelatedPosts(currentPost: { slugAsParams: string; tags: string[] }, count = 3) {
+  return posts
+    .filter((p) => p.published && p.slugAsParams !== currentPost.slugAsParams)
+    .map((p) => ({
+      post: p,
+      score: p.tags.filter((t) => currentPost.tags.includes(t)).length,
+    }))
+    .filter((x) => x.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, count)
+    .map((x) => x.post)
 }
 
 export async function generateStaticParams() {
@@ -60,6 +78,8 @@ export default async function PostPage({ params }: PageProps) {
   if (!post) notFound()
 
   const readingTime = getReadingTime(post.body)
+  const relatedPosts = getRelatedPosts(post)
+  const postUrl = `${BASE_URL}/blog/${post.slugAsParams}`
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -69,7 +89,7 @@ export default async function PostPage({ params }: PageProps) {
     author: { "@type": "Person", name: post.author },
     datePublished: post.date,
     dateModified: post.date,
-    url: `${BASE_URL}/blog/${post.slugAsParams}`,
+    url: postUrl,
     publisher: {
       "@type": "Organization",
       name: "DevOpsBoys",
@@ -85,6 +105,12 @@ export default async function PostPage({ params }: PageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+
+      {/* Reading progress bar */}
+      <ReadingProgress />
+
+      {/* Back to top floating button */}
+      <BackToTop />
 
       <div className="container mx-auto max-w-6xl px-4 py-12">
         <Button asChild variant="ghost" size="sm" className="mb-8 -ml-2 text-muted-foreground hover:text-foreground">
@@ -115,31 +141,62 @@ export default async function PostPage({ params }: PageProps) {
               {post.description}
             </p>
 
-            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground pb-8 mb-8 border-b border-border">
-              <span className="flex items-center gap-1.5">
-                <User className="h-3.5 w-3.5" />
-                {post.author}
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Calendar className="h-3.5 w-3.5" />
-                {formatDate(post.date)}
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5" />
-                {readingTime} min read
-              </span>
+            <div className="flex flex-wrap items-center justify-between gap-4 pb-8 mb-8 border-b border-border">
+              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5" />
+                  {post.author}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5" />
+                  {formatDate(post.date)}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5" />
+                  {readingTime} min read
+                </span>
+              </div>
+              <ShareButtons title={post.title} url={postUrl} />
             </div>
 
             <MDXContent code={post.body} />
 
-            <div className="mt-16 pt-8 border-t border-border">
+            {/* Bottom share + back */}
+            <div className="mt-12 pt-8 border-t border-border flex flex-wrap items-center justify-between gap-4">
               <Button asChild variant="outline">
                 <Link href="/blog">
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Back to all articles
                 </Link>
               </Button>
+              <ShareButtons title={post.title} url={postUrl} />
             </div>
+
+            {/* Newsletter CTA */}
+            <div className="mt-10">
+              <NewsletterCTA />
+            </div>
+
+            {/* Related Posts */}
+            {relatedPosts.length > 0 && (
+              <div className="mt-12">
+                <h2 className="text-xl font-bold mb-6">Related Articles</h2>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {relatedPosts.map((related) => (
+                    <PostCard
+                      key={related.slug}
+                      title={related.title}
+                      description={related.description}
+                      date={related.date}
+                      tags={related.tags}
+                      slug={related.slugAsParams}
+                      author={related.author}
+                      readingTime={getReadingTime(related.body)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </article>
 
           {/* TOC Sidebar */}

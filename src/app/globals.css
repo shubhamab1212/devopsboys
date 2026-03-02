@@ -171,6 +171,10 @@
   from { opacity: 0; transform: translateY(-8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+@keyframes bob {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-7px); }
+}
 
 .animate-float { animation: float 8s ease-in-out infinite; }
 .animate-float-delayed { animation: float-delayed 10s ease-in-out infinite; }
@@ -180,6 +184,15 @@
 .animate-fade-up { animation: fade-up 0.6s ease-out forwards; }
 .animate-fade-in { animation: fade-in 0.4s ease-out forwards; }
 .animate-slide-down { animation: slide-down 0.3s ease-out forwards; }
+.animate-bob { animation: bob 3s ease-in-out infinite; }
+
+/* Topic pill per-color glow on hover */
+.topic-glow-blue:hover    { box-shadow: 0 0 22px oklch(0.65 0.2 250 / 0.45),  0 4px 12px oklch(0 0 0 / 0.12); }
+.topic-glow-sky:hover     { box-shadow: 0 0 22px oklch(0.70 0.17 220 / 0.45), 0 4px 12px oklch(0 0 0 / 0.12); }
+.topic-glow-cyan:hover    { box-shadow: 0 0 22px oklch(0.70 0.18 200 / 0.45), 0 4px 12px oklch(0 0 0 / 0.12); }
+.topic-glow-violet:hover  { box-shadow: 0 0 22px oklch(0.65 0.25 290 / 0.45), 0 4px 12px oklch(0 0 0 / 0.12); }
+.topic-glow-emerald:hover { box-shadow: 0 0 22px oklch(0.65 0.17 160 / 0.45), 0 4px 12px oklch(0 0 0 / 0.12); }
+.topic-glow-orange:hover  { box-shadow: 0 0 22px oklch(0.70 0.18 50  / 0.45), 0 4px 12px oklch(0 0 0 / 0.12); }
 
 /* Staggered fade-up delays */
 .delay-100 { animation-delay: 100ms; }
