@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 import { getReadingTime, formatDate } from "@/lib/utils"
 import { DevScrollProgress } from "@/components/dev-scroll-progress"
 import { HeroCyclingWord } from "@/components/hero-cycling-word"
-import { CartoonCat } from "@/components/cartoon-cat"
 import {
   ArrowRight, Terminal, Cloud, Bot, GitBranch, Server, Zap, BookOpen, Map, FileCode2, Wrench,
 } from "lucide-react"
@@ -56,9 +55,6 @@ export default function HomePage() {
 
       {/* Funny terminal scroll progress */}
       <DevScrollProgress />
-
-      {/* Cartoon cat */}
-      <CartoonCat />
 
       {/* ── HERO ─────────────────────────────────────────── */}
       <section className="relative min-h-[90vh] flex items-center overflow-hidden">
