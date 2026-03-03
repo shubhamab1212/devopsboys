@@ -126,7 +126,8 @@ export default function HomePage() {
       {/* ── FEATURED POST ────────────────────────────────── */}
       {featuredPost && (
         <section className="relative py-20">
-          <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full bg-gradient-to-bl from-violet-600/8 to-transparent blur-[70px] pointer-events-none" />
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full bg-gradient-to-bl from-violet-500/15 to-transparent blur-[80px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] rounded-full bg-gradient-to-tr from-blue-500/10 to-transparent blur-[60px] pointer-events-none" />
 
           <div className="container mx-auto max-w-5xl px-4">
             <div className="flex items-center justify-between mb-10">
@@ -189,7 +190,8 @@ export default function HomePage() {
       {/* ── RECENT POSTS ─────────────────────────────────── */}
       {recentPosts.length > 0 && (
         <section className="relative pb-24">
-          <div className="absolute bottom-0 left-0 w-[350px] h-[350px] rounded-full bg-gradient-to-tr from-cyan-600/8 to-transparent blur-[60px] pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full bg-gradient-to-tr from-cyan-500/15 to-transparent blur-[70px] pointer-events-none" />
+          <div className="absolute top-0 right-0 w-[280px] h-[280px] rounded-full bg-gradient-to-bl from-emerald-500/10 to-transparent blur-[55px] pointer-events-none" />
 
           <div className="container mx-auto max-w-5xl px-4">
             <div className="flex items-center justify-between mb-10">
