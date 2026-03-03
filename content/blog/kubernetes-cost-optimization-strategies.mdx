@@ -1,0 +1,656 @@
+---
+title: "Kubernetes Cost Optimization — 10 Proven Strategies (2026)"
+description: "Running Kubernetes in production can get expensive fast. Here are 10 battle-tested strategies to cut your K8s cloud bill by 40–70% without sacrificing reliability."
+date: 2026-03-06
+published: true
+tags: [kubernetes, aws, cloud, devops]
+author: DevOpsBoys
+---
+
+Kubernetes is powerful — but it's also expensive if you're not careful. Teams routinely overprovision nodes, leave idle workloads running, and pay for resources nobody uses.
+
+This guide covers **10 proven cost optimization strategies** that production teams use to cut Kubernetes cloud bills by 40–70%.
+
+---
+
+## Why Kubernetes Bills Get Out of Control
+
+Before jumping to solutions, understand why Kubernetes costs spiral:
+
+```
+Common Cost Killers
+───────────────────────────────────────────────────────────
+  Problem                        Typical Waste
+─────────────────────────────────────────────────────────
+  Oversized resource requests    30–50% idle CPU/RAM
+  Always-on dev/staging clusters ~40% of total spend
+  Non-spot node pools            3x cost vs spot
+  No cluster autoscaler          Full nodes 24/7
+  Missing VPA                    All pods same size
+  Idle LoadBalancers             $15–50/month each
+  Unoptimized images             Slow pulls, big disk
+  No namespace quotas            Unlimited resource use
+  Retained PVCs after deletion   Orphan storage costs
+  Old snapshots & unused images  Accumulating storage
+─────────────────────────────────────────────────────────
+```
+
+Let's fix all of these.
+
+---
+
+## Strategy 1: Right-Size Resource Requests and Limits
+
+The #1 waste in Kubernetes is **over-provisioned requests**. Most teams set high requests "just to be safe" — and end up paying for headroom that's never used.
+
+### Before (Typical Over-Provisioned Pod)
+
+```yaml
+resources:
+  requests:
+    cpu: "1000m"     # 1 vCPU requested — often actually uses 50m
+    memory: "2Gi"    # 2GB requested — often actually uses 200Mi
+  limits:
+    cpu: "2000m"
+    memory: "4Gi"
+```
+
+### After (Right-Sized via VPA Recommendation)
+
+```yaml
+resources:
+  requests:
+    cpu: "100m"      # Actual p95 usage
+    memory: "256Mi"  # Actual p95 usage
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+```
+
+### How to Measure Actual Usage
+
+```bash
+# Check current resource usage vs requests
+kubectl top pods -n production --sort-by=cpu
+
+# Get resource requests vs actual for a deployment
+kubectl describe deployment myapp -n production | grep -A4 Resources
+
+# Use kube-resource-report for cluster-wide view
+docker run --rm -v ~/.kube/config:/root/.kube/config \
+  hjacobs/kube-resource-report:latest
+```
+
+### Automate with VPA (Vertical Pod Autoscaler)
+
+```yaml
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: myapp-vpa
+  namespace: production
+spec:
+  targetRef:
+    apiVersion: "apps/v1"
+    kind: Deployment
+    name: myapp
+  updatePolicy:
+    updateMode: "Off"    # Start with "Off" — just gives recommendations
+  resourcePolicy:
+    containerPolicies:
+      - containerName: myapp
+        minAllowed:
+          cpu: 50m
+          memory: 64Mi
+        maxAllowed:
+          cpu: 2
+          memory: 2Gi
+```
+
+```bash
+# Install VPA
+git clone https://github.com/kubernetes/autoscaler.git
+cd autoscaler/vertical-pod-autoscaler
+./hack/vpa-up.sh
+
+# Check VPA recommendations
+kubectl describe vpa myapp-vpa -n production
+# Look for: Recommendation > Container Recommendations > Target
+```
+
+**Savings: 30–50% on compute costs.**
+
+---
+
+## Strategy 2: Enable Cluster Autoscaler
+
+The Cluster Autoscaler adds and removes nodes based on pending pods and idle nodes. Without it, you pay for full nodes 24/7 even during off-hours.
+
+```yaml
+# cluster-autoscaler-deployment.yaml (AWS EKS example)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cluster-autoscaler
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cluster-autoscaler
+  template:
+    metadata:
+      labels:
+        app: cluster-autoscaler
+    spec:
+      containers:
+        - name: cluster-autoscaler
+          image: registry.k8s.io/autoscaling/cluster-autoscaler:v1.30.0
+          command:
+            - ./cluster-autoscaler
+            - --cloud-provider=aws
+            - --namespace=kube-system
+            - --node-group-auto-discovery=asg:tag=k8s.io/cluster-autoscaler/enabled,k8s.io/cluster-autoscaler/my-cluster
+            - --balance-similar-node-groups
+            - --skip-nodes-with-system-pods=false
+            - --scale-down-delay-after-add=5m
+            - --scale-down-unneeded-time=5m
+```
+
+**Tuning for cost:**
+
+```bash
+# Key flags to reduce costs:
+--scale-down-unneeded-time=5m          # Remove idle nodes after 5 min
+--scale-down-delay-after-add=5m        # Don't wait long to scale down
+--max-empty-bulk-delete=10             # Remove multiple empty nodes at once
+--skip-nodes-with-local-storage=false  # Allow removing nodes with local storage
+```
+
+**Savings: 20–40% during off-peak hours.**
+
+---
+
+## Strategy 3: Use Spot/Preemptible Instances
+
+Spot instances (AWS) / Preemptible VMs (GCP) are up to **70% cheaper** than on-demand. The catch: they can be interrupted with 2 minutes notice.
+
+Use spot nodes for **stateless, fault-tolerant workloads** — and keep a small on-demand node pool for critical system pods.
+
+### AWS EKS: Spot Node Group (Terraform)
+
+```hcl
+# eks-spot-nodegroup.tf
+resource "aws_eks_node_group" "spot_workers" {
+  cluster_name    = aws_eks_cluster.main.name
+  node_group_name = "spot-workers"
+  node_role_arn   = aws_iam_role.node.arn
+  subnet_ids      = var.private_subnet_ids
+
+  capacity_type  = "SPOT"    # ← Key setting
+
+  instance_types = [          # ← Multiple types = fewer interruptions
+    "m5.xlarge",
+    "m5a.xlarge",
+    "m4.xlarge",
+    "m5d.xlarge",
+  ]
+
+  scaling_config {
+    desired_size = 3
+    max_size     = 20
+    min_size     = 0
+  }
+
+  labels = {
+    "node-type" = "spot"
+  }
+
+  taint {
+    key    = "spot"
+    value  = "true"
+    effect = "NO_SCHEDULE"
+  }
+}
+```
+
+### Tolerate Spot Nodes in Your Pods
+
+```yaml
+spec:
+  tolerations:
+    - key: "spot"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+  affinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          preference:
+            matchExpressions:
+              - key: node-type
+                operator: In
+                values: ["spot"]
+```
+
+**Savings: 50–70% on node costs for eligible workloads.**
+
+---
+
+## Strategy 4: Horizontal Pod Autoscaler (HPA)
+
+Don't run 10 replicas at 3 AM when traffic is low. HPA scales pods based on CPU, memory, or custom metrics.
+
+```yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: myapp-hpa
+  namespace: production
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: myapp
+  minReplicas: 2
+  maxReplicas: 20
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70    # Scale up when CPU > 70%
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300   # Wait 5 min before scaling down
+      policies:
+        - type: Percent
+          value: 25
+          periodSeconds: 60             # Scale down max 25% per minute
+    scaleUp:
+      stabilizationWindowSeconds: 30
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15             # Scale up fast when needed
+```
+
+```bash
+# Monitor HPA status
+kubectl get hpa -n production
+kubectl describe hpa myapp-hpa -n production
+```
+
+**Savings: 20–40% during low-traffic periods.**
+
+---
+
+## Strategy 5: Schedule Dev/Staging Clusters to Scale to Zero
+
+Dev and staging clusters don't need to run at night or on weekends. Use CronJobs or Karpenter to scale to zero during off-hours.
+
+### Scale Down Non-Production with CronJob
+
+```yaml
+# cronjob-scale-down.yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: scale-down-staging
+  namespace: staging
+spec:
+  schedule: "0 20 * * 1-5"     # 8 PM on weekdays
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: scaler
+          containers:
+            - name: kubectl
+              image: bitnami/kubectl:latest
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  kubectl scale deployment --all --replicas=0 -n staging
+                  kubectl scale statefulset --all --replicas=0 -n staging
+          restartPolicy: OnFailure
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: scale-up-staging
+  namespace: staging
+spec:
+  schedule: "0 8 * * 1-5"      # 8 AM on weekdays
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: scaler
+          containers:
+            - name: kubectl
+              image: bitnami/kubectl:latest
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  kubectl scale deployment --all --replicas=1 -n staging
+          restartPolicy: OnFailure
+```
+
+**Savings: ~60% on dev/staging costs (8h/day × 5 days = 40% uptime).**
+
+---
+
+## Strategy 6: Use Namespace Resource Quotas
+
+Without quotas, a single team can accidentally consume all cluster resources. Quotas enforce budgets per team or environment.
+
+```yaml
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: team-alpha-quota
+  namespace: team-alpha
+spec:
+  hard:
+    requests.cpu: "10"          # Total CPU requests for namespace
+    requests.memory: 20Gi       # Total memory requests
+    limits.cpu: "20"
+    limits.memory: 40Gi
+    pods: "50"                  # Max 50 pods
+    services: "10"
+    persistentvolumeclaims: "10"
+    services.loadbalancers: "2"  # Limit expensive LoadBalancers
+```
+
+```yaml
+# Also set LimitRange for default requests
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-limits
+  namespace: team-alpha
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: 200m
+        memory: 256Mi
+      defaultRequest:
+        cpu: 100m
+        memory: 128Mi
+      max:
+        cpu: "2"
+        memory: 2Gi
+```
+
+**Savings: Prevents runaway costs, improves cost predictability.**
+
+---
+
+## Strategy 7: Clean Up Orphaned Resources
+
+Unused PVCs, old ConfigMaps, and stale LoadBalancers accumulate silently.
+
+```bash
+# Find PVCs not mounted by any pod
+kubectl get pvc --all-namespaces | grep -v Bound
+
+# Find services of type LoadBalancer (each costs ~$15-50/month)
+kubectl get svc --all-namespaces --field-selector=spec.type=LoadBalancer
+
+# Find pods in Evicted/Error/Completed state
+kubectl get pods --all-namespaces | grep -E 'Evicted|Error|Completed'
+kubectl delete pods --all-namespaces --field-selector=status.phase=Failed
+
+# Find namespaces with no recent pod activity
+kubectl get pods --all-namespaces --sort-by=.metadata.creationTimestamp
+
+# Clean up old ConfigMaps and Secrets
+kubectl get cm --all-namespaces | grep -v kube-system | wc -l
+```
+
+### Automate with a Weekly Cleanup CronJob
+
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cluster-cleanup
+  namespace: kube-system
+spec:
+  schedule: "0 2 * * 0"     # 2 AM every Sunday
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: cleanup
+              image: bitnami/kubectl:latest
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  # Delete failed pods older than 1 day
+                  kubectl delete pods --all-namespaces \
+                    --field-selector=status.phase=Failed
+                  # Delete completed jobs older than 3 days
+                  kubectl delete jobs --all-namespaces \
+                    --field-selector=status.conditions[0].type=Complete
+          restartPolicy: OnFailure
+```
+
+**Savings: $50–200/month from orphaned resources.**
+
+---
+
+## Strategy 8: Optimize Container Images
+
+Larger images = longer pull times = more startup latency = more idle node time. Slim images also have a smaller attack surface.
+
+```dockerfile
+# Before: 1.2GB image
+FROM node:18
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run build
+EXPOSE 3000
+CMD ["node", "dist/server.js"]
+```
+
+```dockerfile
+# After: ~180MB multi-stage build
+FROM node:18-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+RUN npm run build
+
+FROM node:18-alpine AS runner
+WORKDIR /app
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+USER appuser
+EXPOSE 3000
+CMD ["node", "dist/server.js"]
+```
+
+```bash
+# Analyze image layers
+docker run --rm wagoodman/dive:latest myapp:latest
+
+# Scan and compare sizes
+docker images | sort -k 7 -h
+
+# Use distroless for minimal attack surface
+FROM gcr.io/distroless/nodejs18-debian12
+COPY --from=builder /app/dist /app/dist
+COPY --from=builder /app/node_modules /app/node_modules
+```
+
+**Savings: Faster pulls = less idle node time. Also reduces storage costs.**
+
+---
+
+## Strategy 9: Use Karpenter Instead of Cluster Autoscaler (AWS)
+
+[Karpenter](https://karpenter.sh) is AWS's next-gen node provisioner. It's significantly smarter than Cluster Autoscaler:
+
+```
+Cluster Autoscaler vs Karpenter
+──────────────────────────────────────────────────────────────
+                    Cluster Autoscaler    Karpenter
+──────────────────────────────────────────────────────────────
+Node selection      Fixed node groups     Any instance type
+Spot integration    Manual ASG config     Native, auto-select
+Scale-down speed    Slow (node groups)    Fast (any node)
+Bin packing         Basic                 Optimized
+Cost optimization   Good                  Excellent
+Consolidation       Manual               Automatic
+──────────────────────────────────────────────────────────────
+```
+
+```yaml
+# karpenter-nodepool.yaml
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: default
+spec:
+  template:
+    spec:
+      requirements:
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values: ["spot", "on-demand"]
+        - key: kubernetes.io/arch
+          operator: In
+          values: ["amd64", "arm64"]
+        - key: karpenter.k8s.aws/instance-category
+          operator: In
+          values: ["c", "m", "r"]
+        - key: karpenter.k8s.aws/instance-generation
+          operator: Gt
+          values: ["2"]
+      nodeClassRef:
+        apiVersion: karpenter.k8s.aws/v1
+        kind: EC2NodeClass
+        name: default
+  limits:
+    cpu: 1000
+    memory: 4000Gi
+  disruption:
+    consolidationPolicy: WhenUnderutilized
+    consolidateAfter: 1m     # ← Aggressively consolidate idle nodes
+```
+
+**Savings: 20–30% additional savings vs Cluster Autoscaler through better bin-packing.**
+
+---
+
+## Strategy 10: Monitor Costs with OpenCost
+
+You can't optimize what you can't measure. [OpenCost](https://www.opencost.io/) is a free, open-source cost monitoring tool for Kubernetes.
+
+```bash
+# Install OpenCost with Helm
+helm repo add opencost https://opencost.github.io/opencost-helm-chart
+helm repo update
+
+helm install opencost opencost/opencost \
+  --namespace opencost \
+  --create-namespace \
+  --set opencost.exporter.cloudProviderApiKey="YOUR_AWS_KEY"
+
+# Port-forward the UI
+kubectl port-forward -n opencost svc/opencost 9090:9090
+
+# Access at http://localhost:9090
+```
+
+OpenCost gives you cost breakdown by:
+- **Namespace** — which team is spending what
+- **Deployment** — which workload costs most
+- **Label** — cost by environment, app, or team tag
+- **Node** — on-demand vs spot efficiency
+
+```bash
+# Query cost via OpenCost API
+curl -G http://localhost:9090/allocation/compute \
+  -d window=7d \
+  -d aggregate=namespace \
+  -d accumulate=true | jq '.data[0]'
+```
+
+**Savings: Visibility leads to accountability. Teams with dashboards typically spend 20–30% less.**
+
+---
+
+## Real-World Cost Reduction Roadmap
+
+Apply these strategies in order of impact vs effort:
+
+```
+Priority  Strategy                         Effort    Typical Savings
+────────────────────────────────────────────────────────────────────
+  1       Right-size resource requests     Medium    30–50%
+  2       Enable Cluster Autoscaler        Low       20–40%
+  3       Spot instances for workers       Medium    50–70%
+  4       Scale dev/staging to zero        Low       60% on non-prod
+  5       HPA on all workloads             Medium    20–40%
+  6       OpenCost visibility              Low       15–25%
+  7       Namespace quotas                 Low       Predictability
+  8       Orphan resource cleanup          Low       $50–200/month
+  9       Slim container images            Medium    5–15%
+  10      Migrate to Karpenter             High      20–30%
+────────────────────────────────────────────────────────────────────
+Combined potential savings:              40–70% of current bill
+```
+
+---
+
+## Quick Wins You Can Do Today
+
+```bash
+# 1. Find oversized nodes (low CPU utilization)
+kubectl top nodes
+
+# 2. Find pods using < 10% of their requested CPU
+kubectl top pods --all-namespaces | awk '{if ($3+0 < 50) print $0}'
+
+# 3. Count LoadBalancer services (each ~$15-50/mo)
+kubectl get svc --all-namespaces --field-selector spec.type=LoadBalancer | wc -l
+
+# 4. Find PVCs in Released state (orphaned storage)
+kubectl get pvc --all-namespaces | grep Released
+
+# 5. Check nodes that are mostly idle
+kubectl describe nodes | grep -A5 "Allocated resources"
+```
+
+---
+
+## Conclusion
+
+Kubernetes cost optimization is an ongoing practice, not a one-time fix. Start with **right-sizing requests and enabling autoscaling** — these two alone typically cut bills by 40%.
+
+Then move to spot instances, and finally set up OpenCost for long-term visibility and accountability.
+
+For the Kubernetes commands you need every day, bookmark our [Kubernetes Cheatsheet](/cheatsheets/kubernetes). And if you're interviewing for a K8s role, check out our [Kubernetes Interview Questions](/interview-prep/kubernetes).
+
+> **Need a managed Kubernetes cluster to practice these techniques?**
+> [DigitalOcean Kubernetes (DOKS)](https://m.do.co/c/fb46f21445dc) is the easiest way to spin up a managed K8s cluster — starts at $12/month with **$200 free credit** for new users. Perfect for testing cost optimization strategies without breaking the bank.

@@ -1,0 +1,655 @@
+---
+title: "Docker Security Best Practices — Production Checklist (2026)"
+description: "A complete Docker security checklist for production. Cover image hardening, runtime security, secrets management, network isolation, and scanning — with real examples."
+date: 2026-03-12
+published: true
+tags: [docker, devops, kubernetes, cicd]
+author: DevOpsBoys
+---
+
+Docker makes it easy to ship software — but default Docker configurations are *not* production-safe. Containers running as root, secrets baked into images, exposed Docker sockets: these are real vulnerabilities that get exploited in the wild.
+
+This guide is a production-ready Docker security checklist with working examples for every item.
+
+---
+
+## The Docker Security Threat Model
+
+Before hardening, understand what you're protecting against:
+
+```
+Attack Surface            Common Vulnerabilities
+─────────────────────────────────────────────────────────────────
+Container images          Outdated OS packages, CVEs, embedded secrets
+Running containers        Root processes, over-privileged capabilities
+Host-container boundary   Docker socket exposure, privileged mode
+Networking                Container-to-container lateral movement
+Secrets / env vars        Plaintext secrets in image layers or envs
+Supply chain              Untrusted base images, compromised registries
+─────────────────────────────────────────────────────────────────
+```
+
+---
+
+## 1. Never Run Containers as Root
+
+By default, containers run as root (UID 0). A container escape by a root process gives the attacker root on the host.
+
+### Bad (Default)
+```dockerfile
+FROM node:18
+WORKDIR /app
+COPY . .
+RUN npm install
+CMD ["node", "server.js"]
+# Runs as root — dangerous
+```
+
+### Good (Non-Root User)
+```dockerfile
+FROM node:18-alpine
+
+# Create non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+WORKDIR /app
+
+# Copy and install as root, then switch
+COPY --chown=appuser:appgroup package*.json ./
+RUN npm ci --only=production
+
+COPY --chown=appuser:appgroup . .
+
+# Drop privileges before running
+USER appuser
+
+EXPOSE 3000
+CMD ["node", "server.js"]
+```
+
+### Enforce at Runtime (Docker)
+```bash
+# Run with specific UID even if Dockerfile doesn't specify
+docker run --user 1001:1001 myapp:latest
+
+# Verify the running user
+docker exec <container_id> whoami
+docker exec <container_id> id
+```
+
+### Enforce in Kubernetes
+```yaml
+spec:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1001
+    runAsGroup: 1001
+    fsGroup: 1001
+  containers:
+    - name: myapp
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true    # Prevent writes to filesystem
+        capabilities:
+          drop:
+            - ALL                        # Drop all Linux capabilities
+          add:
+            - NET_BIND_SERVICE           # Only add what's needed
+```
+
+---
+
+## 2. Use Minimal, Distroless Base Images
+
+Every package in your image is a potential vulnerability. Alpine Linux is 5MB. Distroless images are even smaller and contain only the runtime — no shell, no package manager, no attack surface.
+
+### Size and Attack Surface Comparison
+
+```
+Base Image          Size      Shell    Package Mgr    CVEs (typical)
+──────────────────────────────────────────────────────────────────────
+ubuntu:22.04        77MB      bash     apt            50–100+
+node:18             1.1GB     bash     apt + npm      100+
+node:18-slim        243MB     bash     apt            30–60
+node:18-alpine      130MB     sh       apk            5–15
+distroless/nodejs18 115MB     None     None           0–5
+──────────────────────────────────────────────────────────────────────
+```
+
+### Multi-Stage Build with Distroless
+
+```dockerfile
+# Stage 1: Build
+FROM node:18-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+# Stage 2: Production — distroless runtime only
+FROM gcr.io/distroless/nodejs18-debian12:nonroot
+
+WORKDIR /app
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+
+# nonroot tag = runs as UID 65532 automatically
+EXPOSE 3000
+CMD ["dist/server.js"]
+```
+
+```dockerfile
+# For Python
+FROM python:3.12-slim AS builder
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+FROM gcr.io/distroless/python3-debian12:nonroot
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=builder /app /app
+CMD ["/app/main.py"]
+```
+
+---
+
+## 3. Never Store Secrets in Images
+
+Secrets baked into images are permanent — even if you delete them in a later layer, they're recoverable from the image history.
+
+### Bad — Secrets in Dockerfile
+
+```dockerfile
+# NEVER DO THIS
+ENV DB_PASSWORD=supersecret123
+ENV API_KEY=sk-prod-key-abc123
+
+RUN aws configure set aws_access_key_id AKIAIOSFODNN7EXAMPLE
+RUN aws configure set aws_secret_access_key wJalrXUtnFEMI/K7MDENG
+```
+
+```bash
+# Anyone can extract these:
+docker history myapp:latest --no-trunc
+docker inspect myapp:latest | grep -i password
+```
+
+### Good — Runtime Secrets Injection
+
+```bash
+# Pass secrets at runtime via environment (minimal, for simple cases)
+docker run \
+  -e DB_PASSWORD="$(aws ssm get-parameter --name /prod/db-password --query Parameter.Value --output text)" \
+  myapp:latest
+
+# Better: use Docker secrets (Swarm) or Kubernetes Secrets
+```
+
+### Docker Secrets (Swarm)
+
+```bash
+# Create secret
+echo "supersecret123" | docker secret create db_password -
+
+# Use in service
+docker service create \
+  --name myapp \
+  --secret db_password \
+  myapp:latest
+```
+
+```dockerfile
+# Access in entrypoint script
+#!/bin/sh
+export DB_PASSWORD=$(cat /run/secrets/db_password)
+exec "$@"
+```
+
+### Kubernetes Secrets (Mounted as Files)
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-credentials
+type: Opaque
+stringData:
+  DB_PASSWORD: "supersecret123"  # Base64 encoded at rest
+---
+apiVersion: apps/v1
+kind: Deployment
+spec:
+  template:
+    spec:
+      containers:
+        - name: myapp
+          volumeMounts:
+            - name: secrets
+              mountPath: /run/secrets
+              readOnly: true
+          env:
+            # Mount as env (acceptable) or file (preferred)
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: DB_PASSWORD
+      volumes:
+        - name: secrets
+          secret:
+            secretName: db-credentials
+```
+
+### Best Practice: External Secrets (HashiCorp Vault / AWS Secrets Manager)
+
+```yaml
+# External Secrets Operator pulls secrets from Vault/AWS/GCP
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: db-credentials
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: aws-secrets-manager
+    kind: ClusterSecretStore
+  target:
+    name: db-credentials  # Creates K8s Secret automatically
+  data:
+    - secretKey: DB_PASSWORD
+      remoteRef:
+        key: prod/myapp/db
+        property: password
+```
+
+---
+
+## 4. Scan Images for Vulnerabilities
+
+Scan before shipping — don't let CVEs reach production.
+
+### Trivy (Free, Open-Source)
+
+```bash
+# Install Trivy
+brew install aquasecurity/trivy/trivy
+
+# Scan a local image
+trivy image myapp:latest
+
+# Scan with severity filter — fail CI on CRITICAL/HIGH
+trivy image --severity CRITICAL,HIGH myapp:latest
+echo "Exit code: $?"
+
+# Scan in CI — output as SARIF for GitHub Security tab
+trivy image \
+  --format sarif \
+  --output results.sarif \
+  myapp:latest
+
+# Scan filesystem (not just image)
+trivy fs --security-checks vuln,config .
+
+# Scan Kubernetes manifests for misconfigurations
+trivy config ./k8s/
+```
+
+### GitHub Actions CI Integration
+
+```yaml
+# .github/workflows/security.yml
+name: Security Scan
+
+on: [push, pull_request]
+
+jobs:
+  trivy-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t myapp:${{ github.sha }} .
+
+      - name: Run Trivy scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: myapp:${{ github.sha }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'           # Fail build on findings
+
+      - name: Upload SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+```
+
+---
+
+## 5. Drop Linux Capabilities
+
+Linux capabilities are fine-grained root permissions. By default, containers get too many.
+
+```bash
+# See what capabilities a container has
+docker run --rm alpine sh -c "cat /proc/self/status | grep Cap"
+# CapEff: 00000000a80425fb  ← 13 capabilities by default
+```
+
+```yaml
+# Kubernetes: drop ALL capabilities, add only what's needed
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+    add:
+      - NET_BIND_SERVICE   # Only if binding to port < 1024
+```
+
+```bash
+# Docker: drop capabilities at runtime
+docker run \
+  --cap-drop ALL \
+  --cap-add NET_BIND_SERVICE \
+  myapp:latest
+
+# Or use --security-opt for seccomp profile
+docker run \
+  --security-opt seccomp=default.json \
+  myapp:latest
+```
+
+### Common Capabilities and When to Drop Them
+
+```
+Capability          Default?    Should Drop?    Why
+────────────────────────────────────────────────────────────────
+NET_RAW             Yes         YES             Allows raw socket crafting (ARP spoofing)
+SYS_PTRACE          No          YES             Allows process debugging/tracing
+SYS_ADMIN           No          YES             Near-root — allows mount, namespaces
+CHOWN               Yes         Often YES       Needed only for user management
+NET_BIND_SERVICE    Yes         Only if >1024   Needed to bind ports < 1024
+SETUID/SETGID       Yes         YES if no su    Needed only for privilege escalation
+────────────────────────────────────────────────────────────────
+```
+
+---
+
+## 6. Use Read-Only Root Filesystem
+
+Prevent attackers from writing malware to disk.
+
+```yaml
+# Kubernetes
+securityContext:
+  readOnlyRootFilesystem: true
+
+# Allow writes only to specific paths via emptyDir volumes
+volumeMounts:
+  - name: tmp
+    mountPath: /tmp
+  - name: app-cache
+    mountPath: /app/cache
+
+volumes:
+  - name: tmp
+    emptyDir: {}
+  - name: app-cache
+    emptyDir: {}
+```
+
+```bash
+# Docker runtime
+docker run --read-only \
+  --tmpfs /tmp \
+  --tmpfs /app/cache \
+  myapp:latest
+```
+
+---
+
+## 7. Secure the Docker Daemon
+
+The Docker socket (`/var/run/docker.sock`) is the crown jewel — anyone with access can root the host.
+
+### Never Mount the Docker Socket in Containers
+
+```yaml
+# EXTREMELY DANGEROUS — gives container full control of host Docker
+volumes:
+  - /var/run/docker.sock:/var/run/docker.sock   # ← NEVER DO THIS
+
+# If you need Docker-in-Docker, use alternatives:
+# - Kaniko (builds images without Docker daemon)
+# - Buildah (rootless image builder)
+# - img (unprivileged image builder)
+```
+
+### Enable TLS for Remote Docker
+
+```bash
+# If you expose Docker daemon remotely, always use TLS
+dockerd \
+  --tlsverify \
+  --tlscacert=ca.pem \
+  --tlscert=server-cert.pem \
+  --tlskey=server-key.pem \
+  --host=tcp://0.0.0.0:2376
+
+# Client-side
+docker --tlsverify \
+  --tlscacert=ca.pem \
+  --tlscert=cert.pem \
+  --tlskey=key.pem \
+  -H=tcp://my-docker-host:2376 info
+```
+
+### Docker Daemon Security Flags
+
+```json
+// /etc/docker/daemon.json
+{
+  "icc": false,                     // Disable inter-container communication by default
+  "userns-remap": "default",        // Enable user namespace remapping
+  "no-new-privileges": true,        // Prevent privilege escalation
+  "live-restore": true,             // Keep containers running during daemon restart
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3"
+  }
+}
+```
+
+---
+
+## 8. Implement Network Policies
+
+By default, all pods can talk to all other pods. Network Policies create microsegmentation.
+
+```yaml
+# Allow only frontend to talk to backend, deny everything else
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-policy
+  namespace: production
+spec:
+  podSelector:
+    matchLabels:
+      app: backend
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: frontend    # Only frontend can reach backend
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: database    # Backend can only reach database
+      ports:
+        - protocol: TCP
+          port: 5432
+    - to: []                   # Allow DNS
+      ports:
+        - protocol: UDP
+          port: 53
+```
+
+---
+
+## 9. Pin Image Tags and Use Digests
+
+`latest` is a moving target. A supply chain attack could swap the image under you.
+
+```dockerfile
+# Bad — unpinned
+FROM node:18
+FROM postgres:latest
+
+# Better — tag pinned
+FROM node:18.19.0-alpine3.19
+FROM postgres:16.1-alpine3.19
+
+# Best — digest pinned (immutable)
+FROM node@sha256:a6394f7e4e4c8e4c6b6c9d7b2e8f9a3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9
+```
+
+```bash
+# Get the digest of an image
+docker pull node:18-alpine
+docker inspect node:18-alpine | jq '.[0].RepoDigests'
+
+# Pull by digest
+docker pull node:18-alpine@sha256:abc123...
+```
+
+---
+
+## 10. Scan IaC and Dockerfiles for Misconfigurations
+
+Security issues often start at configuration time, not runtime.
+
+```bash
+# Trivy config scan — checks Dockerfiles, K8s manifests, Terraform
+trivy config .
+
+# Example findings:
+# Dockerfile (dockerfile): DS002: Detected image with 'root' user
+# Dockerfile (dockerfile): DS026: No HEALTHCHECK defined
+# k8s/deployment.yaml: KSV001: Process running as root user
+# k8s/deployment.yaml: KSV011: CPU not limited
+```
+
+```bash
+# Hadolint — Dockerfile linter
+docker run --rm -i hadolint/hadolint < Dockerfile
+
+# Common findings:
+# DL3008: Pin versions in apt get install
+# DL3013: Pin pip packages
+# DL3020: Use COPY instead of ADD
+# DL3025: Use exec form for CMD
+```
+
+---
+
+## The Docker Security Checklist
+
+```
+Docker Security Production Checklist
+─────────────────────────────────────────────────────────
+IMAGE BUILD
+  ✅ Use minimal base image (Alpine / Distroless)
+  ✅ Multi-stage builds — don't ship build tools
+  ✅ No secrets in Dockerfile or image layers
+  ✅ Pin base image with digest (not :latest)
+  ✅ Non-root USER in Dockerfile
+  ✅ HEALTHCHECK defined
+  ✅ .dockerignore excludes .env, keys, secrets
+
+BEFORE SHIP
+  ✅ Trivy image scan — 0 CRITICAL, minimal HIGH
+  ✅ Hadolint Dockerfile lint passes
+  ✅ trivy config . passes on K8s manifests
+  ✅ No hardcoded passwords in git history
+
+RUNTIME (DOCKER)
+  ✅ --user 1001 (or non-root)
+  ✅ --read-only root filesystem
+  ✅ --cap-drop ALL --cap-add only needed
+  ✅ --no-new-privileges
+  ✅ No --privileged flag
+  ✅ Docker socket NOT mounted
+
+RUNTIME (KUBERNETES)
+  ✅ securityContext.runAsNonRoot: true
+  ✅ securityContext.readOnlyRootFilesystem: true
+  ✅ capabilities.drop: [ALL]
+  ✅ allowPrivilegeEscalation: false
+  ✅ Resource requests and limits set
+  ✅ NetworkPolicy applied
+  ✅ Secrets from Vault/AWS SM, not Kubernetes Secrets only
+
+ONGOING
+  ✅ Weekly Trivy scans on running images
+  ✅ Automated CVE alerts (Dependabot, Snyk)
+  ✅ Docker daemon configured securely
+  ✅ Audit logs enabled
+─────────────────────────────────────────────────────────
+```
+
+---
+
+## Quick Security Audit for Existing Containers
+
+```bash
+# Audit running containers for common issues
+#!/bin/bash
+echo "=== Running as root? ==="
+docker ps -q | xargs -I{} docker inspect {} \
+  --format '{{.Name}}: User={{.Config.User}}'
+
+echo "=== Privileged containers? ==="
+docker ps -q | xargs -I{} docker inspect {} \
+  --format '{{.Name}}: Privileged={{.HostConfig.Privileged}}'
+
+echo "=== Docker socket mounts? ==="
+docker ps -q | xargs -I{} docker inspect {} \
+  --format '{{.Name}}: Mounts={{range .Mounts}}{{.Source}} {{end}}' \
+  | grep docker.sock
+
+echo "=== Running with :latest tag? ==="
+docker ps --format '{{.Names}}: {{.Image}}' | grep :latest
+
+echo "=== No resource limits? ==="
+docker ps -q | xargs -I{} docker inspect {} \
+  --format '{{.Name}}: CPU={{.HostConfig.NanoCpus}} Mem={{.HostConfig.Memory}}'
+```
+
+---
+
+## Conclusion
+
+Container security isn't optional in production. The good news: most of it is low-effort and high-impact.
+
+Start with the fundamentals — **non-root user, no secrets in images, Trivy scans in CI, read-only filesystem** — and you'll be ahead of 80% of teams.
+
+Then layer on runtime security (capabilities, seccomp) and network policies for defense-in-depth.
+
+For the full Docker command reference, check our [Docker Cheatsheet](/cheatsheets/docker). And if you're preparing for interviews, our [Docker Interview Questions](/interview-prep/docker) covers all the security questions you'll encounter.
+
+Also read our beginner-friendly [Docker Guide](/blog/docker-beginners-guide) if you're just getting started with containers.
+
+> **Want to practice Docker security on a real cloud environment?**
+> [DigitalOcean Droplets](https://m.do.co/c/fb46f21445dc) give you a full Linux VM to practice container hardening, network policies, and security scanning — starting at $6/month with **$200 free credit** for new users.
