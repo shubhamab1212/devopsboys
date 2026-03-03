@@ -123,7 +123,13 @@ export default function HomePage() {
             </div>
 
             {/* ── Right: Developer Illustration ──────────── */}
-            <div className="hidden lg:flex items-center justify-center animate-fade-in delay-200 opacity-0">
+            <div
+              className="hidden lg:flex items-center justify-center animate-fade-in delay-200 opacity-0"
+              style={{
+                maskImage: "radial-gradient(ellipse 78% 78% at 55% 48%, black 25%, transparent 88%)",
+                WebkitMaskImage: "radial-gradient(ellipse 78% 78% at 55% 48%, black 25%, transparent 88%)",
+              }}
+            >
               <HeroIllustration />
             </div>
 
