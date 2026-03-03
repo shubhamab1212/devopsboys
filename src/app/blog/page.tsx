@@ -111,19 +111,22 @@ export default function BlogPage() {
 
         {/* Posts grid with staggered fade-up */}
         {publishedPosts.length > 0 ? (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 items-start">
             {publishedPosts.map((post, idx) => (
               <div
                 key={post.slug}
-                className="animate-fade-up opacity-0"
+                className="animate-fade-up opacity-0 flex flex-col"
                 style={{ animationDelay: `${idx * 75}ms` }}
               >
-                {idx === 0 && (
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                    <span className="text-[11px] font-semibold text-green-400 uppercase tracking-widest">Latest</span>
-                  </div>
-                )}
+                {/* Fixed-height label row so all cards in the row align */}
+                <div className="h-5 flex items-center mb-2">
+                  {idx === 0 && (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse mr-1.5" />
+                      <span className="text-[11px] font-semibold text-green-400 uppercase tracking-widest">Latest</span>
+                    </>
+                  )}
+                </div>
                 <PostCard
                   title={post.title}
                   description={post.description}
@@ -132,6 +135,7 @@ export default function BlogPage() {
                   slug={post.slugAsParams}
                   author={post.author}
                   readingTime={getReadingTime(post.body)}
+                  cardIndex={idx}
                 />
               </div>
             ))}

@@ -10,6 +10,7 @@ interface PostCardProps {
   slug: string
   author?: string
   readingTime?: number
+  cardIndex?: number
 }
 
 // Tag → color accent mapping
@@ -32,6 +33,16 @@ const TAG_COLORS: Record<string, { bar: string; text: string; bg: string; border
 
 const DEFAULT = { bar: "from-blue-500 to-violet-500", text: "text-blue-400", bg: "bg-blue-500/12", border: "border-blue-500/30" }
 
+// 5-color rotation palette — ensures no two adjacent cards share the same accent
+// 5 and 3 (grid columns) are coprime, so horizontally AND vertically adjacent cards differ
+const COLOR_ROTATION = [
+  { bar: "from-cyan-500 to-blue-500",     text: "text-cyan-400",    bg: "bg-cyan-500/12",    border: "border-cyan-500/30"    },
+  { bar: "from-violet-500 to-indigo-500", text: "text-violet-400",  bg: "bg-violet-500/12",  border: "border-violet-500/30"  },
+  { bar: "from-orange-500 to-amber-500",  text: "text-orange-400",  bg: "bg-orange-500/12",  border: "border-orange-500/30"  },
+  { bar: "from-emerald-500 to-teal-500",  text: "text-emerald-400", bg: "bg-emerald-500/12", border: "border-emerald-500/30" },
+  { bar: "from-pink-500 to-rose-500",     text: "text-pink-400",    bg: "bg-pink-500/12",    border: "border-pink-500/30"    },
+]
+
 function getColor(tags: string[]) {
   for (const tag of tags) {
     const c = TAG_COLORS[tag.toLowerCase()]
@@ -40,8 +51,10 @@ function getColor(tags: string[]) {
   return DEFAULT
 }
 
-export function PostCard({ title, description, date, tags, slug, author, readingTime }: PostCardProps) {
-  const color = getColor(tags)
+export function PostCard({ title, description, date, tags, slug, author, readingTime, cardIndex }: PostCardProps) {
+  const color = cardIndex !== undefined
+    ? COLOR_ROTATION[cardIndex % COLOR_ROTATION.length]
+    : getColor(tags)
 
   return (
     <article className="group relative flex flex-col rounded-2xl border border-border/60 bg-card overflow-hidden hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-black/20 hover:border-border transition-all duration-300">

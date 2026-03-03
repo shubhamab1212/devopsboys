@@ -38,9 +38,9 @@ export default async function TagPage({ params }: PageProps) {
   return (
     <div className="container mx-auto max-w-6xl px-4 py-16">
       <Button asChild variant="ghost" size="sm" className="mb-8 -ml-2 text-muted-foreground hover:text-foreground">
-        <Link href="/tags">
+        <Link href="/blog">
           <ArrowLeft className="h-4 w-4 mr-1" />
-          All Tags
+          All Posts
         </Link>
       </Button>
 
@@ -53,8 +53,8 @@ export default async function TagPage({ params }: PageProps) {
         </p>
       </div>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {tagPosts.map((post) => (
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 items-start">
+        {tagPosts.map((post, idx) => (
           <PostCard
             key={post.slug}
             title={post.title}
@@ -64,6 +64,7 @@ export default async function TagPage({ params }: PageProps) {
             slug={post.slugAsParams}
             author={post.author}
             readingTime={getReadingTime(post.body)}
+            cardIndex={idx}
           />
         ))}
       </div>
