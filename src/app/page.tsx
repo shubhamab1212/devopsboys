@@ -18,12 +18,13 @@ const recentPosts = publishedPosts.slice(1, 4)
 const allTags = Array.from(new Set(publishedPosts.flatMap((p) => p.tags)))
 
 const topics = [
-  { icon: Terminal,  label: "DevOps",       iconColor: "text-blue-400",    hoverBg: "hover:bg-blue-500/15",    hoverBorder: "hover:border-blue-500/50",    hoverText: "hover:text-blue-300",    glow: "topic-glow-blue",    href: "/tags/devops",     delay: 0   },
-  { icon: Cloud,     label: "Cloud / AWS",  iconColor: "text-sky-400",     hoverBg: "hover:bg-sky-500/15",     hoverBorder: "hover:border-sky-500/50",     hoverText: "hover:text-sky-300",     glow: "topic-glow-sky",     href: "/tags/aws",        delay: 200 },
-  { icon: Server,    label: "Docker",       iconColor: "text-cyan-400",    hoverBg: "hover:bg-cyan-500/15",    hoverBorder: "hover:border-cyan-500/50",    hoverText: "hover:text-cyan-300",    glow: "topic-glow-cyan",    href: "/tags/docker",     delay: 400 },
-  { icon: GitBranch, label: "Kubernetes",   iconColor: "text-violet-400",  hoverBg: "hover:bg-violet-500/15",  hoverBorder: "hover:border-violet-500/50",  hoverText: "hover:text-violet-300",  glow: "topic-glow-violet",  href: "/tags/kubernetes", delay: 600 },
-  { icon: Bot,       label: "AI & ML",      iconColor: "text-emerald-400", hoverBg: "hover:bg-emerald-500/15", hoverBorder: "hover:border-emerald-500/50", hoverText: "hover:text-emerald-300", glow: "topic-glow-emerald", href: "/tags/ai",         delay: 800 },
-  { icon: Zap,       label: "CI/CD",        iconColor: "text-orange-400",  hoverBg: "hover:bg-orange-500/15",  hoverBorder: "hover:border-orange-500/50",  hoverText: "hover:text-orange-300",  glow: "topic-glow-orange",  href: "/tags/cicd",       delay: 1000 },
+  { icon: Terminal,  label: "DevOps",          iconColor: "text-blue-400",    hoverBg: "hover:bg-blue-500/15",    hoverBorder: "hover:border-blue-500/50",    hoverText: "hover:text-blue-300",    glow: "topic-glow-blue",    href: "/tags/devops",      delay: 0    },
+  { icon: Cloud,     label: "Cloud / AWS",     iconColor: "text-sky-400",     hoverBg: "hover:bg-sky-500/15",     hoverBorder: "hover:border-sky-500/50",     hoverText: "hover:text-sky-300",     glow: "topic-glow-sky",     href: "/tags/aws",         delay: 200  },
+  { icon: Server,    label: "Docker",          iconColor: "text-cyan-400",    hoverBg: "hover:bg-cyan-500/15",    hoverBorder: "hover:border-cyan-500/50",    hoverText: "hover:text-cyan-300",    glow: "topic-glow-cyan",    href: "/tags/docker",      delay: 400  },
+  { icon: GitBranch, label: "Kubernetes",      iconColor: "text-violet-400",  hoverBg: "hover:bg-violet-500/15",  hoverBorder: "hover:border-violet-500/50",  hoverText: "hover:text-violet-300",  glow: "topic-glow-violet",  href: "/tags/kubernetes",  delay: 600  },
+  { icon: Bot,       label: "AI & ML",         iconColor: "text-emerald-400", hoverBg: "hover:bg-emerald-500/15", hoverBorder: "hover:border-emerald-500/50", hoverText: "hover:text-emerald-300", glow: "topic-glow-emerald", href: "/tags/ai",          delay: 800  },
+  { icon: Zap,       label: "CI/CD",           iconColor: "text-orange-400",  hoverBg: "hover:bg-orange-500/15",  hoverBorder: "hover:border-orange-500/50",  hoverText: "hover:text-orange-300",  glow: "topic-glow-orange",  href: "/tags/cicd",        delay: 1000 },
+  { icon: BookOpen,  label: "Interview Prep",  iconColor: "text-pink-400",    hoverBg: "hover:bg-pink-500/15",    hoverBorder: "hover:border-pink-500/50",    hoverText: "hover:text-pink-300",    glow: "topic-glow-blue",    href: "/interview-prep",   delay: 1200 },
 ]
 
 export default function HomePage() {
