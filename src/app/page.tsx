@@ -104,27 +104,6 @@ export default function HomePage() {
               </Button>
             </div>
 
-            {/* Floating tech pill badges */}
-            <div className="animate-fade-up delay-300 opacity-0 flex flex-wrap justify-center gap-2.5 mb-14">
-              {[
-                { icon: Server,    label: "Docker",      delay: "0s",    color: "text-cyan-400",    bg: "bg-cyan-500/8",    border: "border-cyan-500/25"    },
-                { icon: GitBranch, label: "Kubernetes",  delay: "0.3s",  color: "text-violet-400",  bg: "bg-violet-500/8",  border: "border-violet-500/25"  },
-                { icon: Cloud,     label: "AWS",         delay: "0.6s",  color: "text-orange-400",  bg: "bg-orange-500/8",  border: "border-orange-500/25"  },
-                { icon: Zap,       label: "CI/CD",       delay: "0.9s",  color: "text-emerald-400", bg: "bg-emerald-500/8", border: "border-emerald-500/25" },
-                { icon: Bot,       label: "AI/ML",       delay: "1.2s",  color: "text-pink-400",    bg: "bg-pink-500/8",    border: "border-pink-500/25"    },
-                { icon: Terminal,  label: "DevOps",      delay: "1.5s",  color: "text-blue-400",    bg: "bg-blue-500/8",    border: "border-blue-500/25"    },
-              ].map(({ icon: Icon, label, delay, color, bg, border }) => (
-                <span
-                  key={label}
-                  className={`animate-bob flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border ${border} ${bg} backdrop-blur-sm text-xs font-semibold ${color} select-none`}
-                  style={{ animationDelay: delay }}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                  {label}
-                </span>
-              ))}
-            </div>
-
             {/* Stats — frosted glass cards */}
             <div className="animate-fade-up delay-400 opacity-0 flex flex-wrap justify-center gap-4">
               <div className="flex flex-col items-center px-8 py-5 rounded-2xl border border-blue-500/20 bg-blue-500/8 backdrop-blur-sm">
