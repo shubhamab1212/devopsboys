@@ -43,10 +43,7 @@ export default defineConfig({
     rehypePlugins: [
       rehypeSlug,
       [rehypePrettyCode as any, {
-        theme: {
-          dark: 'github-dark',
-          light: 'github-light',
-        },
+        theme: 'one-dark-pro',
         onVisitLine(node: any) {
           if (node.children.length === 0) {
             node.children = [{ type: 'text', value: ' ' }]
