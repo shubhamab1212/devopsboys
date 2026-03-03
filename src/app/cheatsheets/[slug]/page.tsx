@@ -116,10 +116,7 @@ export default async function CheatsheetPage({ params }: { params: Promise<{ slu
                     {sec.commands.map((command, i) => (
                       <div
                         key={i}
-                        className="group/row flex items-start gap-3 px-4 py-3 border-b border-border last:border-b-0 hover:bg-muted/40 transition-colors cursor-pointer"
-                        onClick={async () => {
-                          // handled by CopyBtn but clicking row also triggers
-                        }}
+                        className="group/row flex items-start gap-3 px-4 py-3 border-b border-border last:border-b-0 hover:bg-muted/40 transition-colors"
                       >
                         <code className="flex-1 font-mono text-sm text-foreground leading-snug break-all select-all">
                           {command.cmd}
