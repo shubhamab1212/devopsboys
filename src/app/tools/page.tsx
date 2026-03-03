@@ -42,7 +42,7 @@ const categories: Category[] = [
       {
         name: "DigitalOcean",
         description: "Simpler and cheaper than AWS for small-to-medium projects. Great Kubernetes managed service (DOKS).",
-        href: "https://www.digitalocean.com",
+        href: "https://m.do.co/c/fb46f21445dc",
         badge: "$200 Free Credit",
         badgeColor: "bg-blue-500/10 text-blue-400 border-blue-500/20",
         affiliate: true,
