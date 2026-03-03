@@ -3,16 +3,45 @@ import { Resend } from "resend"
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+// Simple in-memory rate limiter (resets on cold start — good enough for a blog)
+const rateLimit = new Map<string, { count: number; resetAt: number }>()
+const RATE_LIMIT = 3        // max requests
+const WINDOW_MS = 60_000    // per 1 minute
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now()
+  const entry = rateLimit.get(ip)
+
+  if (!entry || now > entry.resetAt) {
+    rateLimit.set(ip, { count: 1, resetAt: now + WINDOW_MS })
+    return false
+  }
+
+  if (entry.count >= RATE_LIMIT) return true
+
+  entry.count++
+  return false
+}
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+
 export async function POST(req: Request) {
   try {
-    const { email } = await req.json()
+    // Rate limiting by IP
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown"
+    if (isRateLimited(ip)) {
+      return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 })
+    }
 
-    if (!email || !email.includes("@")) {
-      return NextResponse.json({ error: "Invalid email" }, { status: 400 })
+    const body = await req.json()
+    const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : ""
+
+    if (!email || !EMAIL_REGEX.test(email) || email.length > 254) {
+      return NextResponse.json({ error: "Invalid email address." }, { status: 400 })
     }
 
     if (!process.env.RESEND_API_KEY) {
-      return NextResponse.json({ error: "Email service not configured" }, { status: 500 })
+      return NextResponse.json({ error: "Email service not configured." }, { status: 500 })
     }
 
     // Add contact to Resend audience (if RESEND_AUDIENCE_ID set)
@@ -53,6 +82,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Subscribe error:", error)
-    return NextResponse.json({ error: "Something went wrong" }, { status: 500 })
+    return NextResponse.json({ error: "Something went wrong." }, { status: 500 })
   }
 }
