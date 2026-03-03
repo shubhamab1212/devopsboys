@@ -20,11 +20,11 @@ export function CartoonCat() {
   const [blink, setBlink] = useState(false)
   const [quip, setQuip] = useState<string | null>(null)
 
-  const scrollT = useRef<ReturnType<typeof setTimeout>>()
-  const yawnT   = useRef<ReturnType<typeof setTimeout>>()
-  const sleepT  = useRef<ReturnType<typeof setTimeout>>()
-  const quipT   = useRef<ReturnType<typeof setTimeout>>()
-  const blinkT  = useRef<ReturnType<typeof setTimeout>>()
+  const scrollT = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const yawnT   = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const sleepT  = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const quipT   = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const blinkT  = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function setState(s: State) { stateRef.current = s; _setState(s) }
 
