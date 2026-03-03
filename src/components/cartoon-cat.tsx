@@ -43,13 +43,13 @@ export function CartoonCat() {
       }, 2200 + Math.random() * 3800)
     }
     next()
-    return () => clearTimeout(blinkT.current)
+    return () => clearTimeout(blinkT.current ?? undefined)
   }, [])
 
   // Yawn + sleep schedule while idle
   useEffect(() => {
     if (state !== "idle") return
-    clearTimeout(yawnT.current); clearTimeout(sleepT.current)
+    clearTimeout(yawnT.current ?? undefined); clearTimeout(sleepT.current ?? undefined)
 
     yawnT.current = setTimeout(() => {
       if (stateRef.current !== "idle") return
@@ -61,7 +61,7 @@ export function CartoonCat() {
       if (stateRef.current === "idle") setState("sleeping")
     }, 32000)
 
-    return () => { clearTimeout(yawnT.current); clearTimeout(sleepT.current) }
+    return () => { clearTimeout(yawnT.current ?? undefined); clearTimeout(sleepT.current ?? undefined) }
   }, [state])
 
   // Scroll → alert or wake from sleep
@@ -75,17 +75,17 @@ export function CartoonCat() {
       }
       if (s === "yawning") return
       setState("alert")
-      clearTimeout(scrollT.current)
+      clearTimeout(scrollT.current ?? undefined)
       scrollT.current = setTimeout(() => { if (stateRef.current === "alert") setState("idle") }, 2400)
     }
     window.addEventListener("scroll", handle, { passive: true })
-    return () => { window.removeEventListener("scroll", handle); clearTimeout(scrollT.current) }
+    return () => { window.removeEventListener("scroll", handle); clearTimeout(scrollT.current ?? undefined) }
   }, [])
 
   const handleClick = () => {
     const msg = QUIPS[Math.floor(Math.random() * QUIPS.length)]
     setQuip(msg)
-    clearTimeout(quipT.current)
+    clearTimeout(quipT.current ?? undefined)
     quipT.current = setTimeout(() => setQuip(null), 3200)
   }
 
