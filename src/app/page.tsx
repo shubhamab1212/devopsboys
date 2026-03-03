@@ -5,6 +5,7 @@ import { NewsletterCTA } from "@/components/newsletter-cta"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { getReadingTime, formatDate } from "@/lib/utils"
+import { DevScrollProgress } from "@/components/dev-scroll-progress"
 import {
   ArrowRight, Terminal, Cloud, Bot, GitBranch, Server, Zap, BookOpen, Map, FileCode2, Wrench,
 } from "lucide-react"
@@ -34,17 +35,36 @@ export default function HomePage() {
   return (
     <div className="relative overflow-hidden">
 
+      {/* ── FULL-PAGE CONTINUOUS BACKGROUND ANIMATION ────── */}
+      <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden" aria-hidden="true">
+        {/* Top-left blue orb */}
+        <div className="animate-float absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-blue-600/20 to-violet-600/15 blur-[100px]" />
+        {/* Top-right cyan orb */}
+        <div className="animate-float-delayed absolute -top-20 right-0 w-[450px] h-[450px] rounded-full bg-gradient-to-bl from-cyan-500/15 to-sky-600/10 blur-[90px]" />
+        {/* Mid-left violet orb */}
+        <div className="animate-float-slow absolute top-[40%] -left-20 w-[400px] h-[400px] rounded-full bg-gradient-to-r from-violet-600/12 to-indigo-600/10 blur-[80px]" />
+        {/* Mid-right emerald orb */}
+        <div className="animate-float absolute top-[50%] -right-32 w-[500px] h-[500px] rounded-full bg-gradient-to-l from-emerald-500/12 to-teal-600/8 blur-[90px]" />
+        {/* Bottom-center orange orb */}
+        <div className="animate-float-delayed absolute bottom-0 left-1/3 w-[550px] h-[400px] rounded-full bg-gradient-to-t from-orange-500/10 to-amber-600/8 blur-[100px]" />
+        {/* Bottom-left blue orb */}
+        <div className="animate-float-slow absolute -bottom-20 -left-20 w-[400px] h-[400px] rounded-full bg-gradient-to-tr from-blue-600/15 to-transparent blur-[80px]" />
+      </div>
+
+      {/* Funny terminal scroll progress */}
+      <DevScrollProgress />
+
       {/* ── HERO ─────────────────────────────────────────── */}
       <section className="relative min-h-[90vh] flex items-center justify-center">
 
         {/* Dot grid background */}
         <div className="absolute inset-0 bg-dot-grid pointer-events-none" />
 
-        {/* Animated gradient orbs */}
+        {/* Hero-specific orbs (on top of the global layer) */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="animate-float animate-pulse-glow absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full bg-gradient-to-br from-blue-600/25 to-violet-600/20 blur-[80px]" />
-          <div className="animate-float-delayed animate-pulse-glow absolute -bottom-32 -right-32 w-[600px] h-[600px] rounded-full bg-gradient-to-tl from-cyan-600/20 to-blue-600/20 blur-[90px]" />
-          <div className="animate-float-slow animate-pulse-glow absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-gradient-to-r from-violet-600/15 to-indigo-600/15 blur-[70px]" />
+          <div className="animate-float absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full bg-gradient-to-br from-blue-600/10 to-violet-600/8 blur-[80px]" />
+          <div className="animate-float-delayed absolute -bottom-32 -right-32 w-[600px] h-[600px] rounded-full bg-gradient-to-tl from-cyan-600/8 to-blue-600/8 blur-[90px]" />
+          <div className="animate-float-slow absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-gradient-to-r from-violet-600/8 to-indigo-600/8 blur-[70px]" />
         </div>
 
         {/* Hero content */}

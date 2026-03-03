@@ -11,9 +11,9 @@ const securityHeaders = [
     value: [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://giscus.app",
-      "style-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline' https://giscus.app",
       "img-src 'self' data: blob: https:",
-      "font-src 'self' https://fonts.gstatic.com",
+      "font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com",
       "frame-src https://giscus.app",
       "connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://giscus.app",
     ].join("; "),

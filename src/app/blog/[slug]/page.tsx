@@ -145,7 +145,7 @@ export default async function PostPage({ params }: PageProps) {
           </Link>
         </Button>
 
-        <div className="flex gap-12 items-start">
+        <div className="flex gap-12">
           {/* Main Content */}
           <article className="flex-1 min-w-0">
             {post.tags.length > 0 && (
@@ -231,7 +231,7 @@ export default async function PostPage({ params }: PageProps) {
           {/* TOC Sidebar */}
           {post.toc && post.toc.length > 0 && (
             <aside className="hidden xl:block w-64 shrink-0">
-              <div className="sticky top-24 space-y-4">
+              <div className="sticky top-24 space-y-4 max-h-[calc(100vh-7rem)] overflow-y-auto">
                 <div className="rounded-xl border border-border bg-card p-5">
                   <TableOfContents toc={post.toc} />
                 </div>
