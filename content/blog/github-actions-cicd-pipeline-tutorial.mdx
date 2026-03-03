@@ -1,0 +1,375 @@
+---
+title: "GitHub Actions CI/CD Pipeline: Complete Tutorial for Docker & Kubernetes (2026)"
+description: "Learn how to build a production-grade CI/CD pipeline using GitHub Actions. Covers Docker image builds, automated testing, secrets management, and Kubernetes deployments — with real workflow files."
+date: 2026-03-14
+published: true
+tags: [cicd, devops, docker, kubernetes]
+author: DevOpsBoys
+---
+
+Every time you push code, something should happen automatically: tests run, a Docker image gets built, and your app gets deployed. That's the promise of CI/CD — and **GitHub Actions** is one of the best tools to deliver on it.
+
+GitHub Actions is free for public repos, deeply integrated with your code, and flexible enough to handle everything from simple linting to full multi-environment Kubernetes deployments. In 2026, it's the CI/CD tool most teams reach for first.
+
+This tutorial walks you through building a **real, production-grade pipeline** — not just a "Hello World" workflow.
+
+---
+
+## What Is GitHub Actions?
+
+GitHub Actions is a CI/CD platform built directly into GitHub. It lets you automate workflows triggered by events like `push`, `pull_request`, `schedule`, or even a manual click.
+
+Here's the mental model:
+
+- **Workflow** — A YAML file inside `.github/workflows/`. Each workflow runs in response to an event.
+- **Job** — A workflow has one or more jobs. Each job runs on a virtual machine (called a **runner**).
+- **Step** — Each job has steps. A step is either a shell command or a pre-built **Action** from the marketplace.
+- **Event** — What triggers the workflow (`push`, `pull_request`, `release`, `schedule`, etc.)
+
+The key insight: **every job gets a clean environment**. That means no leftover state from previous runs. This is a feature, not a bug — it makes pipelines reproducible.
+
+---
+
+## Why GitHub Actions Over Jenkins or CircleCI?
+
+Before you start building, let's understand why GitHub Actions has become the default choice for most teams:
+
+| Feature | GitHub Actions | Jenkins | CircleCI |
+|---|---|---|---|
+| Setup overhead | Zero (it's in GitHub) | High (self-host) | Low |
+| Free tier | 2,000 min/month | Free (self-host) | 6,000 min/month |
+| Marketplace | 20,000+ actions | Plugin ecosystem | Orbs |
+| Native GitHub integration | Native | Manual webhooks | OAuth |
+| Kubernetes deployment | Via actions | Via plugins | Yes |
+
+Jenkins is still powerful for complex enterprise setups — see our [GitOps comparison: ArgoCD vs Flux vs Jenkins](/blog/argocd-vs-flux-vs-jenkins-gitops-comparison) for when Jenkins wins. But for most teams, GitHub Actions is the fastest path from code to production.
+
+---
+
+## Pipeline Architecture We'll Build
+
+Here's what our pipeline will do, in order:
+
+1. **Lint & Test** — Run unit tests on every push and PR
+2. **Build Docker Image** — Create an optimized image
+3. **Push to Registry** — Push to GitHub Container Registry (GHCR)
+4. **Deploy to Kubernetes** — Update the deployment on a real cluster
+
+This covers the full lifecycle. Let's build it step by step.
+
+---
+
+## Step 1: Project Structure
+
+Create this structure in your repo:
+
+```
+my-app/
+├── .github/
+│   └── workflows/
+│       ├── ci.yml          # Test + lint on every PR
+│       └── deploy.yml      # Build + push + deploy on merge to main
+├── src/
+│   └── app.py
+├── tests/
+│   └── test_app.py
+├── Dockerfile
+└── k8s/
+    └── deployment.yaml
+```
+
+Keep CI and deploy in **separate files**. CI should run on every branch. Deployment should only run on `main` (or `production`). Mixing them leads to accidental deploys.
+
+---
+
+## Step 2: CI Workflow (Lint + Test)
+
+Every PR should be tested before it can be merged. Here's the CI workflow:
+
+```yaml
+# .github/workflows/ci.yml
+name: CI
+
+on:
+  push:
+    branches: ["**"]       # Run on all branches
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"            # Cache pip dependencies
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run linter
+        run: flake8 src/ tests/
+
+      - name: Run tests
+        run: pytest tests/ --tb=short
+```
+
+A few things worth noting here:
+
+- `uses: actions/checkout@v4` — Always pin actions to a major version. Never use `@latest` (supply chain risk).
+- `cache: "pip"` — Caching dependencies can cut job time by 60–80%.
+- The `on:` block triggers this on every branch push, not just `main`. That way PRs get tested before they can be merged.
+
+If you're building Docker images as part of your app, also check our [Docker security best practices](/blog/docker-security-best-practices) — your Dockerfile choices directly affect how safe your pipeline is.
+
+---
+
+## Step 3: Dockerfile for Production
+
+Before building in CI, make sure your Dockerfile is production-ready. A multi-stage build keeps images small and secure:
+
+```dockerfile
+# Stage 1: Build
+FROM python:3.12-slim AS builder
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+# Stage 2: Runtime (minimal image)
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Don't run as root
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+
+COPY --from=builder /install /usr/local
+COPY src/ .
+
+USER appuser
+EXPOSE 8000
+
+CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:8000", "--workers", "2"]
+```
+
+Why multi-stage? The builder stage installs everything including build tools. The final image only gets the installed packages — no compilers, no build caches, no extra attack surface. Final image size goes from ~800MB to ~120MB.
+
+---
+
+## Step 4: Build and Push Docker Image
+
+Now for the deploy workflow. This runs only when code merges to `main`:
+
+```yaml
+# .github/workflows/deploy.yml
+name: Build and Deploy
+
+on:
+  push:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}  # e.g. myorg/my-app
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write    # Required to push to GHCR
+
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}  # Auto-provided, no setup needed
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=sha-          # Tag with git SHA: sha-abc1234
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha        # Use GitHub Actions cache for Docker layers
+          cache-to: type=gha,mode=max
+```
+
+The `docker/metadata-action` handles tagging automatically. Every merge to `main` produces a `latest` tag **and** a SHA-based tag (e.g. `sha-3f2a8b1`). The SHA tag is critical — it makes rollbacks trivial. Just redeploy the previous SHA.
+
+The `GITHUB_TOKEN` is injected automatically by GitHub — you don't need to create or manage it.
+
+---
+
+## Step 5: Deploy to Kubernetes
+
+This job runs after the image is pushed. It updates your Kubernetes deployment with the new image:
+
+```yaml
+  deploy:
+    needs: build-and-push    # Only runs if build succeeds
+    runs-on: ubuntu-latest
+    environment: production  # Requires manual approval if configured
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: "v1.29.0"
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Deploy to Kubernetes
+        run: |
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}"
+
+          kubectl set image deployment/my-app \
+            app=$IMAGE \
+            --namespace=production
+
+          kubectl rollout status deployment/my-app \
+            --namespace=production \
+            --timeout=120s
+
+      - name: Verify deployment
+        run: |
+          kubectl get pods -n production -l app=my-app
+```
+
+A critical detail: `kubectl rollout status` waits for the rollout to complete and **exits with a non-zero code if it fails**. This means your GitHub Actions job will fail if Kubernetes can't roll out the new image. You get automatic failure detection — no need to check manually.
+
+The `KUBECONFIG` secret is base64-encoded. Generate it with:
+
+```bash
+cat ~/.kube/config | base64 | pbcopy   # macOS
+cat ~/.kube/config | base64 | xclip    # Linux
+```
+
+Then add it to GitHub: **Settings → Secrets and variables → Actions → New repository secret**.
+
+---
+
+## Secrets Management — Don't Get This Wrong
+
+GitHub Actions has two types of secrets:
+
+- **Repository secrets** — Available to all workflows in the repo
+- **Environment secrets** — Only available when the job targets a specific environment (like `production`)
+
+Use environment secrets for production credentials. This lets you require **manual approval** before any workflow can access production secrets:
+
+```yaml
+jobs:
+  deploy:
+    environment: production    # Reviewers must approve before this job runs
+```
+
+Configure environment protection rules at: **Settings → Environments → production → Required reviewers**.
+
+Never hardcode credentials. Never echo secrets in `run:` steps — GitHub will detect it and redact, but the underlying command still ran. Store secrets in GitHub, pass them via `${{ secrets.SECRET_NAME }}`.
+
+For more on secrets in containerized environments, see our [Docker security guide](/blog/docker-security-best-practices).
+
+---
+
+## Optimizing Your Pipeline Speed
+
+A slow pipeline kills developer experience. Here's how to keep it fast:
+
+**Cache everything you can:**
+```yaml
+- uses: actions/cache@v4
+  with:
+    path: ~/.cache/pip
+    key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+    restore-keys: |
+      ${{ runner.os }}-pip-
+```
+
+**Run jobs in parallel:**
+```yaml
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    # ...
+  test:
+    runs-on: ubuntu-latest
+    # ...
+  # Both lint and test run in parallel — no "needs:" between them
+```
+
+**Use `paths` filters to skip unnecessary runs:**
+```yaml
+on:
+  push:
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "Dockerfile"
+    # Docs changes won't trigger the pipeline
+```
+
+---
+
+## What's Next: GitOps
+
+This pipeline is push-based — GitHub Actions directly calls `kubectl set image`. That's fine to start, but as your infrastructure grows, consider moving to **pull-based GitOps** with ArgoCD or Flux.
+
+Instead of kubectl from CI, your pipeline would commit the new image tag to a config repo, and ArgoCD would detect the change and sync your cluster. This gives you a full audit trail and cluster-level reconciliation.
+
+Read our [deep-dive comparison of ArgoCD, Flux, and Jenkins](/blog/argocd-vs-flux-vs-jenkins-gitops-comparison) to decide which approach fits your team.
+
+If you're deploying to AWS EKS, our [AWS DevOps tools overview](/blog/aws-devops-tools-overview) covers the managed services that work alongside this pipeline.
+
+---
+
+## Summary
+
+Here's what we built:
+
+| Stage | Tool | Trigger |
+|---|---|---|
+| Lint + Test | GitHub Actions + pytest | Every push, every PR |
+| Build Image | docker/build-push-action | Merge to main |
+| Push to Registry | GHCR | Merge to main |
+| Deploy | kubectl set image | After push succeeds |
+
+The full workflow is about 100 lines of YAML. It handles parallel jobs, caching, SHA-based tagging, rollout verification, and secrets isolation — without a single server to manage.
+
+GitHub Actions scales from a solo project to a 100-engineer monorepo. Start simple, add stages as you grow, and let the pipeline do the boring work so you can focus on shipping.
+
+---
+
+*Want to see how this compares to Terraform-based infrastructure pipelines? Check our [Terraform vs Pulumi comparison](/blog/terraform-vs-pulumi-iac-comparison) for the infrastructure side of GitOps.*
