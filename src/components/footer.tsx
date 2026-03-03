@@ -57,10 +57,13 @@ export function Footer() {
             <h3 className="font-semibold text-sm">Quick Links</h3>
             <nav className="flex flex-col gap-2">
               {[
-                { href: "/blog", label: "All Articles" },
-                { href: "/tags", label: "Topics" },
-                { href: "/about", label: "About" },
-                { href: "/rss.xml", label: "RSS Feed" },
+                { href: "/blog",          label: "All Articles" },
+                { href: "/cheatsheets",   label: "Cheatsheets" },
+                { href: "/interview-prep",label: "Interview Prep" },
+                { href: "/roadmap",       label: "DevOps Roadmap" },
+                { href: "/tools",         label: "Tools & Resources" },
+                { href: "/about",         label: "About" },
+                { href: "/rss.xml",       label: "RSS Feed" },
               ].map((link) => (
                 <Link key={link.href} href={link.href}
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors w-fit">

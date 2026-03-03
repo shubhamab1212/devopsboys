@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { getReadingTime, formatDate } from "@/lib/utils"
 import {
-  ArrowRight, Terminal, Cloud, Bot, GitBranch, Server, Zap, BookOpen, Map, FileCode2,
+  ArrowRight, Terminal, Cloud, Bot, GitBranch, Server, Zap, BookOpen, Map, FileCode2, Wrench,
 } from "lucide-react"
 
 const publishedPosts = posts
@@ -27,6 +27,7 @@ const topics = [
   { icon: BookOpen,  label: "Interview Prep",  iconColor: "text-pink-400",    hoverBg: "hover:bg-pink-500/15",    hoverBorder: "hover:border-pink-500/50",    hoverText: "hover:text-pink-300",    glow: "topic-glow-blue",    href: "/interview-prep",   delay: 1200 },
   { icon: FileCode2, label: "Cheatsheets",     iconColor: "text-cyan-400",    hoverBg: "hover:bg-cyan-500/15",    hoverBorder: "hover:border-cyan-500/50",    hoverText: "hover:text-cyan-300",    glow: "topic-glow-cyan",    href: "/cheatsheets",      delay: 1400 },
   { icon: Map,       label: "Roadmap",         iconColor: "text-violet-400",  hoverBg: "hover:bg-violet-500/15",  hoverBorder: "hover:border-violet-500/50",  hoverText: "hover:text-violet-300",  glow: "topic-glow-violet",  href: "/roadmap",          delay: 1600 },
+  { icon: Wrench,    label: "Tools",           iconColor: "text-emerald-400", hoverBg: "hover:bg-emerald-500/15", hoverBorder: "hover:border-emerald-500/50", hoverText: "hover:text-emerald-300", glow: "topic-glow-emerald", href: "/tools",            delay: 1800 },
 ]
 
 export default function HomePage() {

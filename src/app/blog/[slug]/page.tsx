@@ -10,6 +10,7 @@ import { BackToTop } from "@/components/back-to-top"
 import { NewsletterCTA } from "@/components/newsletter-cta"
 import { GiscusComments } from "@/components/giscus-comments"
 import { ViewCounter } from "@/components/view-counter"
+import { CarbonAds } from "@/components/carbon-ads"
 import { formatDate, getReadingTime } from "@/lib/utils"
 import { Calendar, Clock, ArrowLeft, User } from "lucide-react"
 import type { Metadata } from "next"
@@ -229,9 +230,12 @@ export default async function PostPage({ params }: PageProps) {
 
           {/* TOC Sidebar */}
           {post.toc && post.toc.length > 0 && (
-            <aside className="hidden xl:block w-64 shrink-0 sticky top-24">
-              <div className="rounded-xl border border-border bg-card p-5">
-                <TableOfContents toc={post.toc} />
+            <aside className="hidden xl:block w-64 shrink-0">
+              <div className="sticky top-24 space-y-4">
+                <div className="rounded-xl border border-border bg-card p-5">
+                  <TableOfContents toc={post.toc} />
+                </div>
+                <CarbonAds />
               </div>
             </aside>
           )}
