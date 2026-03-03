@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { getReadingTime, formatDate } from "@/lib/utils"
 import { DevScrollProgress } from "@/components/dev-scroll-progress"
+import { HeroCyclingWord } from "@/components/hero-cycling-word"
 import {
   ArrowRight, Terminal, Cloud, Bot, GitBranch, Server, Zap, BookOpen, Map, FileCode2, Wrench,
 } from "lucide-react"
@@ -56,64 +57,119 @@ export default function HomePage() {
       <DevScrollProgress />
 
       {/* ── HERO ─────────────────────────────────────────── */}
-      <section className="relative min-h-[90vh] flex items-center">
+      <section className="relative min-h-[90vh] flex items-center overflow-hidden">
 
         {/* Dot grid background */}
         <div className="absolute inset-0 bg-dot-grid pointer-events-none" />
 
-        {/* Hero content — centered */}
-        <div className="relative z-10 container mx-auto max-w-6xl px-4 py-24">
-          <div className="max-w-3xl mx-auto text-center">
+        {/* Top-center gradient beam — makes heading area glow */}
+        <div className="absolute top-0 inset-x-0 h-[65%] bg-gradient-to-b from-primary/20 via-violet-500/8 to-transparent pointer-events-none" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] rounded-full bg-gradient-to-b from-blue-500/25 to-transparent blur-[90px] pointer-events-none" />
+
+        {/* Hero content */}
+        <div className="relative z-10 container mx-auto max-w-5xl px-4 py-16">
+          <div className="flex flex-col items-center text-center">
 
             {/* Badge */}
-            <div className="animate-fade-up opacity-0 inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-400 text-sm font-medium mb-8">
+            <div className="animate-fade-up opacity-0 inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-400 text-sm font-medium mb-10">
               <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
               Practical DevOps &amp; Cloud Knowledge
             </div>
 
-            {/* Title */}
-            <h1 className="animate-fade-up delay-100 opacity-0 text-5xl md:text-6xl font-extrabold tracking-tight mb-6 leading-[1.1]">
-              Master{" "}
-              <span className="text-shimmer">DevOps &amp; Cloud</span>
-              <br className="hidden sm:block" />
-              {" "}Engineering
+            {/* BIG Title — cycling word in the middle */}
+            <h1 className="animate-fade-up delay-100 opacity-0 font-extrabold tracking-tight leading-[1.08] mb-8"
+              style={{ fontSize: "clamp(3rem, 8vw, 6rem)" }}>
+              Master<br />
+              <HeroCyclingWord /><br />
+              Engineering
             </h1>
 
             {/* Subtitle */}
-            <p className="animate-fade-up delay-200 opacity-0 text-lg text-muted-foreground max-w-xl mx-auto mb-10 leading-relaxed">
+            <p className="animate-fade-up delay-200 opacity-0 text-lg md:text-xl text-muted-foreground max-w-2xl mb-10 leading-relaxed">
               In-depth guides on Docker, Kubernetes, AWS, CI/CD pipelines, AI/ML deployments,
               and modern infrastructure — written by engineers, for engineers.
             </p>
 
             {/* CTAs */}
             <div className="animate-fade-up delay-300 opacity-0 flex flex-wrap items-center justify-center gap-4 mb-12">
-              <Button asChild size="lg" className="gap-2 px-7 h-12 text-base shadow-lg shadow-primary/25">
+              <Button asChild size="lg" className="gap-2 px-8 h-13 text-base shadow-lg shadow-primary/30 rounded-xl">
                 <Link href="/blog">
                   <BookOpen className="h-4 w-4" /> Read Articles
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="gap-2 px-7 h-12 text-base">
+              <Button asChild variant="outline" size="lg" className="gap-2 px-8 h-13 text-base rounded-xl">
                 <Link href="/tags">
                   Browse Topics <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
             </div>
 
-            {/* Stats row */}
-            <div className="animate-fade-up delay-400 opacity-0 flex flex-wrap items-center justify-center gap-8 text-sm text-muted-foreground">
-              <div className="text-center">
-                <p className="text-3xl font-extrabold text-foreground">{publishedPosts.length}</p>
-                <p className="text-xs uppercase tracking-wide mt-0.5">Articles</p>
+            {/* Floating tech pill badges */}
+            <div className="animate-fade-up delay-300 opacity-0 flex flex-wrap justify-center gap-2.5 mb-14">
+              {[
+                { icon: Server,    label: "Docker",      delay: "0s",    color: "text-cyan-400",    bg: "bg-cyan-500/8",    border: "border-cyan-500/25"    },
+                { icon: GitBranch, label: "Kubernetes",  delay: "0.3s",  color: "text-violet-400",  bg: "bg-violet-500/8",  border: "border-violet-500/25"  },
+                { icon: Cloud,     label: "AWS",         delay: "0.6s",  color: "text-orange-400",  bg: "bg-orange-500/8",  border: "border-orange-500/25"  },
+                { icon: Zap,       label: "CI/CD",       delay: "0.9s",  color: "text-emerald-400", bg: "bg-emerald-500/8", border: "border-emerald-500/25" },
+                { icon: Bot,       label: "AI/ML",       delay: "1.2s",  color: "text-pink-400",    bg: "bg-pink-500/8",    border: "border-pink-500/25"    },
+                { icon: Terminal,  label: "DevOps",      delay: "1.5s",  color: "text-blue-400",    bg: "bg-blue-500/8",    border: "border-blue-500/25"    },
+              ].map(({ icon: Icon, label, delay, color, bg, border }) => (
+                <span
+                  key={label}
+                  className={`animate-bob flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border ${border} ${bg} backdrop-blur-sm text-xs font-semibold ${color} select-none`}
+                  style={{ animationDelay: delay }}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {label}
+                </span>
+              ))}
+            </div>
+
+            {/* Terminal card */}
+            <div className="animate-fade-up delay-400 opacity-0 w-full max-w-md rounded-2xl border border-border/70 bg-card/60 backdrop-blur-md overflow-hidden shadow-2xl shadow-black/25 mb-12">
+              {/* Terminal title bar */}
+              <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border/50 bg-muted/40">
+                <span className="w-3 h-3 rounded-full bg-red-400/90" />
+                <span className="w-3 h-3 rounded-full bg-yellow-400/90" />
+                <span className="w-3 h-3 rounded-full bg-green-400/90" />
+                <span className="ml-3 font-mono text-[11px] text-muted-foreground">devops@terminal ~ zsh</span>
               </div>
-              <div className="w-px h-8 bg-border hidden sm:block" />
-              <div className="text-center">
-                <p className="text-3xl font-extrabold text-foreground">{allTags.length}+</p>
-                <p className="text-xs uppercase tracking-wide mt-0.5">Topics</p>
+              {/* Terminal body */}
+              <div className="p-4 font-mono text-[11px] md:text-xs text-left space-y-1">
+                <p>
+                  <span className="text-green-400">❯</span>{" "}
+                  <span className="text-blue-400">kubectl</span>{" "}
+                  <span className="text-foreground/80">get pods -n production</span>
+                </p>
+                <p className="text-muted-foreground/70 pl-3">NAME&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;READY&nbsp;&nbsp;STATUS&nbsp;&nbsp;&nbsp;AGE</p>
+                <p className="text-green-400 pl-3">api-deployment&nbsp;&nbsp;&nbsp;3/3&nbsp;&nbsp;&nbsp;Running&nbsp;&nbsp;2d4h</p>
+                <p className="text-green-400 pl-3">worker-pod&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1/1&nbsp;&nbsp;&nbsp;Running&nbsp;&nbsp;8h</p>
+                <p className="text-green-400 pl-3">redis-cache&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1/1&nbsp;&nbsp;&nbsp;Running&nbsp;&nbsp;5d</p>
+                <p className="mt-2">
+                  <span className="text-green-400">❯</span>{" "}
+                  <span className="text-blue-400">docker</span>{" "}
+                  <span className="text-foreground/80">build . -t myapp:latest</span>
+                </p>
+                <p className="text-muted-foreground/70 pl-3">
+                  Successfully built <span className="text-emerald-400">abc123f9</span>{" "}
+                  <span className="animate-pulse text-green-400">▋</span>
+                </p>
               </div>
-              <div className="w-px h-8 bg-border hidden sm:block" />
-              <div className="text-center">
-                <p className="text-3xl font-extrabold text-foreground">Free</p>
-                <p className="text-xs uppercase tracking-wide mt-0.5">Always</p>
+            </div>
+
+            {/* Stats — frosted glass cards */}
+            <div className="animate-fade-up delay-400 opacity-0 flex flex-wrap justify-center gap-4">
+              <div className="flex flex-col items-center px-8 py-5 rounded-2xl border border-blue-500/20 bg-blue-500/8 backdrop-blur-sm">
+                <p className="text-4xl font-extrabold text-blue-400">{publishedPosts.length}</p>
+                <p className="text-xs uppercase tracking-widest text-muted-foreground mt-1">Articles</p>
+              </div>
+              <div className="flex flex-col items-center px-8 py-5 rounded-2xl border border-violet-500/20 bg-violet-500/8 backdrop-blur-sm">
+                <p className="text-4xl font-extrabold text-violet-400">{allTags.length}+</p>
+                <p className="text-xs uppercase tracking-widest text-muted-foreground mt-1">Topics</p>
+              </div>
+              <div className="flex flex-col items-center px-8 py-5 rounded-2xl border border-emerald-500/20 bg-emerald-500/8 backdrop-blur-sm">
+                <p className="text-4xl font-extrabold text-emerald-400">Free</p>
+                <p className="text-xs uppercase tracking-widest text-muted-foreground mt-1">Always</p>
               </div>
             </div>
 
