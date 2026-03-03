@@ -404,7 +404,7 @@
   position: relative;
   margin: 2rem 0;
   border-radius: 0.75rem;
-  overflow: hidden;
+  overflow: hidden;            /* clips rounded corners; inner pre handles horizontal scroll */
   border: 1px solid #30363d;
   box-shadow:
     0 0 0 1px oklch(0 0 0 / 0.1),
@@ -450,6 +450,8 @@
   font-size: 0.875rem;
   line-height: 1.75;
   box-shadow: none !important;
+  overflow-x: auto;            /* mobile: horizontal scroll for long code lines */
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Figure from rehype-pretty-code (when no custom wrapper) */

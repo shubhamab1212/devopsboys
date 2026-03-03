@@ -36,19 +36,20 @@ export default function HomePage() {
     <div className="relative overflow-hidden">
 
       {/* ── FULL-PAGE CONTINUOUS BACKGROUND ANIMATION ────── */}
-      <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden" aria-hidden="true">
+      {/* absolute z-0 (not fixed/-z-10) so orbs are NOT behind the body background */}
+      <div className="absolute inset-0 pointer-events-none z-0" aria-hidden="true">
         {/* Top-left blue orb */}
-        <div className="animate-float absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-blue-600/20 to-violet-600/15 blur-[100px]" />
+        <div className="animate-float absolute -top-40 -left-40 w-[700px] h-[700px] rounded-full bg-gradient-to-br from-blue-500/30 to-violet-500/20 blur-[80px]" />
         {/* Top-right cyan orb */}
-        <div className="animate-float-delayed absolute -top-20 right-0 w-[450px] h-[450px] rounded-full bg-gradient-to-bl from-cyan-500/15 to-sky-600/10 blur-[90px]" />
-        {/* Mid-left violet orb */}
-        <div className="animate-float-slow absolute top-[40%] -left-20 w-[400px] h-[400px] rounded-full bg-gradient-to-r from-violet-600/12 to-indigo-600/10 blur-[80px]" />
-        {/* Mid-right emerald orb */}
-        <div className="animate-float absolute top-[50%] -right-32 w-[500px] h-[500px] rounded-full bg-gradient-to-l from-emerald-500/12 to-teal-600/8 blur-[90px]" />
-        {/* Bottom-center orange orb */}
-        <div className="animate-float-delayed absolute bottom-0 left-1/3 w-[550px] h-[400px] rounded-full bg-gradient-to-t from-orange-500/10 to-amber-600/8 blur-[100px]" />
+        <div className="animate-float-delayed absolute -top-20 -right-20 w-[550px] h-[550px] rounded-full bg-gradient-to-bl from-cyan-400/25 to-sky-500/15 blur-[70px]" />
+        {/* Mid-left violet orb — 35% down the page */}
+        <div className="animate-float-slow absolute top-[35%] -left-32 w-[500px] h-[500px] rounded-full bg-gradient-to-r from-violet-500/20 to-indigo-500/15 blur-[75px]" />
+        {/* Mid-right emerald orb — 50% down */}
+        <div className="animate-float absolute top-[50%] -right-20 w-[550px] h-[550px] rounded-full bg-gradient-to-l from-emerald-400/20 to-teal-500/12 blur-[80px]" />
+        {/* Lower-center orange orb — 70% down */}
+        <div className="animate-float-delayed absolute top-[70%] left-1/4 w-[600px] h-[450px] rounded-full bg-gradient-to-t from-orange-400/18 to-amber-500/12 blur-[90px]" />
         {/* Bottom-left blue orb */}
-        <div className="animate-float-slow absolute -bottom-20 -left-20 w-[400px] h-[400px] rounded-full bg-gradient-to-tr from-blue-600/15 to-transparent blur-[80px]" />
+        <div className="animate-float-slow absolute bottom-0 -left-20 w-[500px] h-[500px] rounded-full bg-gradient-to-tr from-blue-500/22 to-indigo-500/15 blur-[75px]" />
       </div>
 
       {/* Funny terminal scroll progress */}

@@ -36,6 +36,7 @@ export function TableOfContents({ toc }: TocProps) {
   const [activeId, setActiveId] = useState<string>("")
   const [mounted, setMounted] = useState(false)
   const flatItems = flattenToc(toc)
+  const linkRefs = useRef<Record<string, HTMLAnchorElement | null>>({})
 
   // Assign a color group to each top-level (h2) section
   const sectionColorMap = useRef<Record<string, number>>({})
@@ -63,6 +64,13 @@ export function TableOfContents({ toc }: TocProps) {
     }
     return 0
   }
+
+  // Auto-scroll active TOC item into view when section changes
+  useEffect(() => {
+    if (!activeId) return
+    const el = linkRefs.current[activeId]
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest" })
+  }, [activeId])
 
   useEffect(() => {
     setMounted(true)
@@ -110,6 +118,7 @@ export function TableOfContents({ toc }: TocProps) {
             <a
               key={item.url}
               href={item.url}
+              ref={(el) => { linkRefs.current[id] = el }}
               style={{
                 animationDelay: mounted ? `${idx * 40}ms` : "0ms",
               }}
