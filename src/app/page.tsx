@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { getReadingTime, formatDate } from "@/lib/utils"
 import { DevScrollProgress } from "@/components/dev-scroll-progress"
-import { HeroIllustration } from "@/components/hero-illustration"
 import {
   ArrowRight, Terminal, Cloud, Bot, GitBranch, Server, Zap, BookOpen, Map, FileCode2, Wrench,
 } from "lucide-react"
@@ -62,75 +61,60 @@ export default function HomePage() {
         {/* Dot grid background */}
         <div className="absolute inset-0 bg-dot-grid pointer-events-none" />
 
-        {/* Hero content — 2-col on lg+ */}
+        {/* Hero content — centered */}
         <div className="relative z-10 container mx-auto max-w-6xl px-4 py-24">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="max-w-3xl mx-auto text-center">
 
-            {/* ── Left: Text ─────────────────────────────── */}
-            <div className="flex flex-col items-center lg:items-start text-center lg:text-left">
-
-              {/* Badge */}
-              <div className="animate-fade-up opacity-0 inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-400 text-sm font-medium mb-8">
-                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                Practical DevOps &amp; Cloud Knowledge
-              </div>
-
-              {/* Title */}
-              <h1 className="animate-fade-up delay-100 opacity-0 text-5xl md:text-6xl font-extrabold tracking-tight mb-6 leading-[1.1]">
-                Master{" "}
-                <span className="text-shimmer">DevOps &amp; Cloud</span>
-                <br className="hidden sm:block" />
-                {" "}Engineering
-              </h1>
-
-              {/* Subtitle */}
-              <p className="animate-fade-up delay-200 opacity-0 text-lg text-muted-foreground max-w-xl mb-10 leading-relaxed">
-                In-depth guides on Docker, Kubernetes, AWS, CI/CD pipelines, AI/ML deployments,
-                and modern infrastructure — written by engineers, for engineers.
-              </p>
-
-              {/* CTAs */}
-              <div className="animate-fade-up delay-300 opacity-0 flex flex-wrap items-center justify-center lg:justify-start gap-4 mb-12">
-                <Button asChild size="lg" className="gap-2 px-7 h-12 text-base shadow-lg shadow-primary/25">
-                  <Link href="/blog">
-                    <BookOpen className="h-4 w-4" /> Read Articles
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" size="lg" className="gap-2 px-7 h-12 text-base">
-                  <Link href="/tags">
-                    Browse Topics <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </Button>
-              </div>
-
-              {/* Stats row */}
-              <div className="animate-fade-up delay-400 opacity-0 flex flex-wrap items-center justify-center lg:justify-start gap-8 text-sm text-muted-foreground">
-                <div className="text-center lg:text-left">
-                  <p className="text-3xl font-extrabold text-foreground">{publishedPosts.length}</p>
-                  <p className="text-xs uppercase tracking-wide mt-0.5">Articles</p>
-                </div>
-                <div className="w-px h-8 bg-border hidden sm:block" />
-                <div className="text-center lg:text-left">
-                  <p className="text-3xl font-extrabold text-foreground">{allTags.length}+</p>
-                  <p className="text-xs uppercase tracking-wide mt-0.5">Topics</p>
-                </div>
-                <div className="w-px h-8 bg-border hidden sm:block" />
-                <div className="text-center lg:text-left">
-                  <p className="text-3xl font-extrabold text-foreground">Free</p>
-                  <p className="text-xs uppercase tracking-wide mt-0.5">Always</p>
-                </div>
-              </div>
+            {/* Badge */}
+            <div className="animate-fade-up opacity-0 inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-400 text-sm font-medium mb-8">
+              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              Practical DevOps &amp; Cloud Knowledge
             </div>
 
-            {/* ── Right: Developer Illustration ──────────── */}
-            <div
-              className="hidden lg:flex items-center justify-center animate-fade-in delay-200 opacity-0"
-              style={{
-                maskImage: "radial-gradient(ellipse 78% 78% at 55% 48%, black 25%, transparent 88%)",
-                WebkitMaskImage: "radial-gradient(ellipse 78% 78% at 55% 48%, black 25%, transparent 88%)",
-              }}
-            >
-              <HeroIllustration />
+            {/* Title */}
+            <h1 className="animate-fade-up delay-100 opacity-0 text-5xl md:text-6xl font-extrabold tracking-tight mb-6 leading-[1.1]">
+              Master{" "}
+              <span className="text-shimmer">DevOps &amp; Cloud</span>
+              <br className="hidden sm:block" />
+              {" "}Engineering
+            </h1>
+
+            {/* Subtitle */}
+            <p className="animate-fade-up delay-200 opacity-0 text-lg text-muted-foreground max-w-xl mx-auto mb-10 leading-relaxed">
+              In-depth guides on Docker, Kubernetes, AWS, CI/CD pipelines, AI/ML deployments,
+              and modern infrastructure — written by engineers, for engineers.
+            </p>
+
+            {/* CTAs */}
+            <div className="animate-fade-up delay-300 opacity-0 flex flex-wrap items-center justify-center gap-4 mb-12">
+              <Button asChild size="lg" className="gap-2 px-7 h-12 text-base shadow-lg shadow-primary/25">
+                <Link href="/blog">
+                  <BookOpen className="h-4 w-4" /> Read Articles
+                </Link>
+              </Button>
+              <Button asChild variant="outline" size="lg" className="gap-2 px-7 h-12 text-base">
+                <Link href="/tags">
+                  Browse Topics <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+
+            {/* Stats row */}
+            <div className="animate-fade-up delay-400 opacity-0 flex flex-wrap items-center justify-center gap-8 text-sm text-muted-foreground">
+              <div className="text-center">
+                <p className="text-3xl font-extrabold text-foreground">{publishedPosts.length}</p>
+                <p className="text-xs uppercase tracking-wide mt-0.5">Articles</p>
+              </div>
+              <div className="w-px h-8 bg-border hidden sm:block" />
+              <div className="text-center">
+                <p className="text-3xl font-extrabold text-foreground">{allTags.length}+</p>
+                <p className="text-xs uppercase tracking-wide mt-0.5">Topics</p>
+              </div>
+              <div className="w-px h-8 bg-border hidden sm:block" />
+              <div className="text-center">
+                <p className="text-3xl font-extrabold text-foreground">Free</p>
+                <p className="text-xs uppercase tracking-wide mt-0.5">Always</p>
+              </div>
             </div>
 
           </div>
