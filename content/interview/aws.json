@@ -1,0 +1,86 @@
+{
+  "topic": "aws",
+  "label": "AWS",
+  "description": "Essential AWS services and DevOps concepts — EC2, S3, IAM, VPC, EKS, Lambda, and cloud architecture patterns.",
+  "color": "orange",
+  "questions": [
+    {
+      "id": 1,
+      "question": "What is IAM in AWS? Explain Users, Groups, Roles, and Policies.",
+      "answer": "IAM (Identity and Access Management) controls who can access AWS resources and what they can do.\n\n- **Users** — Individual identities (people or apps) with long-term credentials (password/access keys)\n- **Groups** — Collection of users. Attach policies to groups instead of individual users\n- **Roles** — Temporary identities assumed by AWS services, apps, or users. No long-term credentials — uses temporary tokens. An EC2 instance assuming a Role to access S3 is the most common pattern\n- **Policies** — JSON documents defining permissions (Allow/Deny on Actions for Resources)\n\n**Best practices:**\n- Never use root account for daily work\n- Apply least privilege principle\n- Use Roles for EC2/Lambda/ECS (never hardcode access keys in code)\n- Enable MFA for all users\n- Rotate access keys regularly",
+      "difficulty": "beginner"
+    },
+    {
+      "id": 2,
+      "question": "What is the difference between Security Groups and NACLs in AWS?",
+      "answer": "Both control network traffic but at different levels:\n\n**Security Groups (SG):**\n- Stateful — if you allow inbound, response traffic is automatically allowed outbound\n- Applied at the instance/ENI level\n- Only Allow rules (no explicit Deny)\n- Evaluated as a whole (all rules)\n\n**Network ACLs (NACL):**\n- Stateless — you must explicitly allow both inbound AND outbound\n- Applied at the subnet level — affects all instances in the subnet\n- Both Allow and Deny rules\n- Rules evaluated in order (lowest number first)\n\n**Analogy:** Security Group = building security guard (stateful, per instance). NACL = city checkpoint (stateless, per subnet).\n\n**When to use NACLs:** Block specific IP ranges at subnet level, add extra layer of protection.",
+      "difficulty": "beginner"
+    },
+    {
+      "id": 3,
+      "question": "Explain VPC and its components — subnets, route tables, Internet Gateway.",
+      "answer": "**VPC (Virtual Private Cloud):** Your private, isolated network within AWS. You define the IP range (CIDR block, e.g., 10.0.0.0/16).\n\n**Key components:**\n- **Subnets** — Subdivisions of VPC in a specific AZ. Public subnet (has route to IGW) or private subnet (no direct internet access)\n- **Internet Gateway (IGW)** — Connects VPC to the internet. Attach to VPC, add route in public subnet's route table\n- **Route Table** — Rules directing traffic. Each subnet is associated with a route table\n- **NAT Gateway** — Allows private subnet instances to reach internet (for updates) without being publicly accessible. Sits in public subnet\n- **VPC Peering** — Connect two VPCs privately\n- **Transit Gateway** — Hub to connect multiple VPCs and on-premises networks\n\n**Typical 3-tier architecture:** Public subnet (Load Balancer) → Private subnet (App servers) → Private subnet (Database)",
+      "difficulty": "beginner"
+    },
+    {
+      "id": 4,
+      "question": "What is the difference between S3 storage classes?",
+      "answer": "S3 offers multiple storage classes optimized for different access patterns:\n\n| Class | Use Case | Retrieval |\n|---|---|---|\n| **Standard** | Frequently accessed data | Milliseconds |\n| **Standard-IA** | Infrequently accessed, rapid retrieval | Milliseconds |\n| **One Zone-IA** | Non-critical, infrequent access | Milliseconds |\n| **Glacier Instant** | Archive, accessed once/quarter | Milliseconds |\n| **Glacier Flexible** | Long-term archive | Minutes to hours |\n| **Glacier Deep Archive** | 7-10 year retention | 12 hours |\n| **Intelligent-Tiering** | Unknown access patterns | Milliseconds |\n\n**Cost decreases** from Standard → Deep Archive, but retrieval costs increase.\n\n**Best practice:** Use S3 Lifecycle Policies to automatically transition objects between classes (e.g., move logs to IA after 30 days, Glacier after 90 days).",
+      "difficulty": "beginner"
+    },
+    {
+      "id": 5,
+      "question": "What is Auto Scaling in AWS? How does it work?",
+      "answer": "Auto Scaling automatically adjusts the number of EC2 instances based on demand, ensuring availability and cost efficiency.\n\n**Components:**\n- **Launch Template** — Defines what instances to launch (AMI, instance type, security groups, user data)\n- **Auto Scaling Group (ASG)** — Defines min, max, desired capacity and which subnets to use\n- **Scaling Policies** — When and how to scale\n\n**Scaling types:**\n- **Target Tracking** — Maintain a target metric (e.g., keep CPU at 60%). Simplest and recommended\n- **Step Scaling** — Add/remove specific number of instances based on metric thresholds\n- **Scheduled Scaling** — Scale at specific times (e.g., scale up every Monday 9AM)\n- **Predictive Scaling** — ML-based, forecasts future load\n\n**Key concepts:** Cooldown period (prevents rapid scale-in/out), health checks (replace unhealthy instances), lifecycle hooks (run scripts before/after launch/terminate).",
+      "difficulty": "beginner"
+    },
+    {
+      "id": 6,
+      "question": "How does AWS EKS differ from self-managed Kubernetes?",
+      "answer": "**EKS (Elastic Kubernetes Service):** AWS-managed Kubernetes control plane.\n\n**What AWS manages:**\n- Control plane (API server, etcd, scheduler, controllers)\n- Control plane HA across 3 AZs\n- Automatic control plane upgrades\n- Integration with AWS services (IAM, VPC, ELB, ECR)\n\n**What you manage:**\n- Worker nodes (EC2 or Fargate)\n- Node group upgrades\n- Kubernetes add-ons (CoreDNS, kube-proxy, CNI)\n- Cluster networking and security\n\n**EKS advantages over self-managed:**\n- No etcd management\n- Automatic control plane patching\n- Native IAM integration (IRSA — IAM Roles for Service Accounts)\n- AWS Load Balancer Controller for ALB/NLB\n- EKS Fargate — serverless nodes\n\n**EKS Fargate vs EC2 node groups:** Fargate = no node management, pod-level billing, good for variable workloads. EC2 = more control, cheaper for sustained workloads, supports DaemonSets.",
+      "difficulty": "intermediate"
+    },
+    {
+      "id": 7,
+      "question": "Explain AWS networking — what happens when you make a request to an EC2 instance?",
+      "answer": "Request flow for a public EC2 instance:\n\n1. **DNS resolution** — Route 53 resolves domain to EC2 Elastic IP or ALB IP\n2. **Internet Gateway** — Traffic enters VPC through IGW\n3. **Route Table** — Public subnet route table has `0.0.0.0/0 → IGW`, directs traffic to EC2\n4. **NACL check** — Subnet-level firewall evaluates inbound rules\n5. **Security Group** — Instance-level stateful firewall checks inbound rules\n6. **EC2 instance** — Traffic reaches the instance's ENI (Elastic Network Interface)\n\n**For ALB → EC2:**\n1. Request hits ALB (in public subnet)\n2. ALB evaluates listener rules\n3. ALB forwards to target group\n4. Traffic goes to EC2 in private subnet (ALB SG → EC2 SG allowed)\n\n**Key networking concepts:** ENI (virtual NIC), Elastic IP (static public IP), VPC endpoints (private connectivity to AWS services without internet).",
+      "difficulty": "intermediate"
+    },
+    {
+      "id": 8,
+      "question": "What is AWS Lambda? What are its limitations?",
+      "answer": "Lambda is AWS's serverless compute service — run code without provisioning servers. You upload code, define triggers, Lambda handles everything else.\n\n**Key features:**\n- Triggers: API Gateway, S3 events, DynamoDB streams, SQS, EventBridge, etc.\n- Automatic scaling — from 0 to thousands of concurrent executions\n- Pay per invocation and duration (100ms billing granularity)\n- Supports: Node.js, Python, Go, Java, Ruby, .NET, custom runtimes\n\n**Limitations:**\n- **Timeout** — Max 15 minutes per execution\n- **Memory** — 128MB to 10GB\n- **Package size** — 50MB zipped, 250MB unzipped (use Lambda Layers or container images up to 10GB)\n- **Ephemeral storage** — 512MB to 10GB in /tmp (not persistent)\n- **Cold starts** — First invocation after idle period has latency (mitigate with Provisioned Concurrency)\n- **Concurrency** — Default 1000 per region (soft limit)\n- **No persistent connections** — Use RDS Proxy for database connection pooling",
+      "difficulty": "intermediate"
+    },
+    {
+      "id": 9,
+      "question": "What is IRSA (IAM Roles for Service Accounts) in EKS?",
+      "answer": "IRSA allows Kubernetes pods to assume IAM roles without using EC2 instance profiles or hardcoded credentials.\n\n**How it works:**\n1. EKS cluster has an OIDC (OpenID Connect) provider\n2. Create an IAM Role with a trust policy allowing the EKS OIDC provider and a specific ServiceAccount\n3. Annotate the Kubernetes ServiceAccount with the IAM Role ARN\n4. Pods using that ServiceAccount automatically get temporary IAM credentials via AWS SDK\n\n**Example annotation:**\n```yaml\napiVersion: v1\nkind: ServiceAccount\nmetadata:\n  name: s3-reader\n  annotations:\n    eks.amazonaws.com/role-arn: arn:aws:iam::123456789:role/S3ReadRole\n```\n\n**Why IRSA over node instance profile:**\n- Pod-level granularity (not all pods on a node get same permissions)\n- Principle of least privilege\n- Automatic credential rotation\n- No credential management in code",
+      "difficulty": "intermediate"
+    },
+    {
+      "id": 10,
+      "question": "How does AWS handle high availability and disaster recovery?",
+      "answer": "**High Availability (HA) strategies:**\n- **Multi-AZ deployments** — Spread resources across 2-3 AZs in a region\n- **Auto Scaling Groups** — Replace unhealthy instances automatically\n- **RDS Multi-AZ** — Synchronous standby replica in different AZ, automatic failover\n- **Application Load Balancer** — Distributes traffic, health checks, cross-zone\n- **ElastiCache Multi-AZ** — Redis with automatic failover\n- **S3** — 99.999999999% durability, auto-replicated across AZs\n\n**Disaster Recovery strategies (RTO/RPO tradeoffs):**\n- **Backup & Restore** — Cheapest, highest RTO/RPO. Restore from backups in disaster\n- **Pilot Light** — Core services always running, scale rest when needed\n- **Warm Standby** — Scaled-down version always running in another region\n- **Multi-Site Active-Active** — Full deployment in multiple regions, lowest RTO/RPO, most expensive\n\n**Key metrics:** RTO (Recovery Time Objective) = how long to recover. RPO (Recovery Point Objective) = how much data loss is acceptable.",
+      "difficulty": "advanced"
+    },
+    {
+      "id": 11,
+      "question": "How do you design a cost-optimized AWS architecture?",
+      "answer": "Cost optimization pillars from AWS Well-Architected Framework:\n\n**Compute:**\n- Use Spot Instances for fault-tolerant workloads (70-90% cheaper)\n- Right-size instances using AWS Compute Optimizer\n- Reserved Instances or Savings Plans for predictable workloads (up to 72% savings)\n- Auto Scaling to match capacity with demand\n- Lambda for spiky, short-duration workloads\n\n**Storage:**\n- S3 Intelligent-Tiering for unknown access patterns\n- EBS volume right-sizing, delete unattached volumes\n- S3 Lifecycle policies to archive old data\n\n**Networking:**\n- Minimize data transfer costs — keep traffic within AZ when possible\n- Use VPC Endpoints instead of NAT Gateway for S3/DynamoDB (cheaper)\n- CloudFront to cache content at edge (reduce origin requests)\n\n**Monitoring costs:**\n- AWS Cost Explorer for trend analysis\n- AWS Budgets for alerts\n- Cost Allocation Tags for chargeback\n- Trusted Advisor for unused resources\n\n**Quick wins:** Delete unused EBS volumes, release unused Elastic IPs, delete old EBS snapshots, identify idle EC2 instances.",
+      "difficulty": "advanced"
+    },
+    {
+      "id": 12,
+      "question": "Explain AWS CloudFormation vs Terraform for infrastructure as code.",
+      "answer": "**CloudFormation:**\n- AWS-native IaC service\n- JSON/YAML templates\n- Free (pay only for resources)\n- Native integration — automatically handles IAM, rollbacks, change sets\n- Stack drift detection\n- Limited to AWS only\n- CDK (Cloud Development Kit) lets you write in Python/TypeScript that compiles to CloudFormation\n\n**Terraform:**\n- HashiCorp open-source tool (now BSL license)\n- HCL (HashiCorp Configuration Language)\n- Multi-cloud — AWS, GCP, Azure, Kubernetes, 1000+ providers\n- State file (local or remote in S3+DynamoDB)\n- Plan/Apply workflow (see changes before applying)\n- Larger community, more modules\n- Terraform Cloud/Enterprise for team features\n\n**When to choose:**\n- CloudFormation: AWS-only shop, want native service integration, no state management\n- Terraform: Multi-cloud, prefer explicit state, want broader ecosystem\n\n**Key Terraform concepts:** `terraform init`, `plan`, `apply`, `destroy`, workspaces, modules, remote state with S3 backend + DynamoDB locking.",
+      "difficulty": "advanced"
+    },
+    {
+      "id": 13,
+      "question": "How do you implement a secure CI/CD pipeline on AWS?",
+      "answer": "**Secure AWS CI/CD pipeline architecture:**\n\n**Tools:** CodePipeline + CodeBuild + CodeDeploy or GitHub Actions + ECR + EKS\n\n**Security layers:**\n\n1. **Source security:**\n   - Branch protection rules, required PR reviews\n   - Secret scanning (GitGuardian, GitHub secret scanning)\n   - SAST scanning in PR (Semgrep, SonarQube)\n\n2. **Build security:**\n   - CodeBuild with VPC configuration (no public internet)\n   - Use IAM roles for CodeBuild (not hardcoded credentials)\n   - SBOM generation, container image scanning (Trivy, ECR scanning)\n   - Sign container images (Cosign/Notary)\n\n3. **Artifact security:**\n   - Store images in private ECR\n   - Enable ECR image scanning\n   - Immutable image tags\n\n4. **Deployment security:**\n   - Separate IAM roles per environment (dev/staging/prod)\n   - Require manual approval gate for production\n   - Deploy to private subnets only\n   - OPA/Gatekeeper policies in Kubernetes\n\n5. **Monitoring:**\n   - CloudTrail for audit logs\n   - GuardDuty for threat detection\n   - Config Rules for compliance",
+      "difficulty": "advanced"
+    }
+  ]
+}

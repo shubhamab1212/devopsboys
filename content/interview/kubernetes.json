@@ -1,0 +1,98 @@
+{
+  "topic": "kubernetes",
+  "label": "Kubernetes",
+  "description": "Deep dive into Kubernetes architecture, workloads, networking, storage, and production operations.",
+  "color": "violet",
+  "questions": [
+    {
+      "id": 1,
+      "question": "What is Kubernetes and why is it used?",
+      "answer": "Kubernetes (K8s) is an open-source container orchestration platform originally developed by Google. It automates deployment, scaling, and management of containerized applications.\n\nKey reasons to use Kubernetes:\n- **Self-healing** — Automatically restarts failed containers, reschedules on node failures\n- **Auto-scaling** — Scale pods up/down based on CPU/memory (HPA) or custom metrics\n- **Load balancing** — Distributes traffic across pods\n- **Rolling deployments** — Zero-downtime updates and easy rollbacks\n- **Service discovery** — Built-in DNS for pod communication\n- **Storage orchestration** — Automatically mount storage from cloud providers\n- **Declarative configuration** — Describe desired state in YAML, K8s makes it happen",
+      "difficulty": "beginner"
+    },
+    {
+      "id": 2,
+      "question": "Explain Kubernetes architecture — Master and Worker nodes.",
+      "answer": "**Control Plane (Master):**\n- `kube-apiserver` — Front door to K8s. All requests (kubectl, controllers) go through it\n- `etcd` — Distributed key-value store. Stores all cluster state/config\n- `kube-scheduler` — Decides which node a new pod should run on\n- `kube-controller-manager` — Runs controllers (Node controller, Deployment controller, etc.)\n- `cloud-controller-manager` — Integrates with cloud provider APIs (AWS, GCP, Azure)\n\n**Worker Nodes:**\n- `kubelet` — Agent on each node. Ensures containers in pods are running as expected\n- `kube-proxy` — Maintains network rules on nodes for Service routing\n- `Container runtime` — Actually runs containers (containerd, CRI-O)\n\nControllers constantly watch desired state (in etcd) vs actual state and reconcile differences.",
+      "difficulty": "beginner"
+    },
+    {
+      "id": 3,
+      "question": "What is the difference between a Pod, Deployment, and StatefulSet?",
+      "answer": "**Pod:** Smallest deployable unit in K8s. Contains one or more containers sharing network and storage. Pods are ephemeral — if a pod dies, it's gone.\n\n**Deployment:** Manages a ReplicaSet of identical, stateless pods. Provides:\n- Desired replica count\n- Rolling update strategy\n- Rollback capability\n- Self-healing (replaces dead pods)\nBest for stateless apps: web servers, APIs.\n\n**StatefulSet:** Like a Deployment but for stateful applications. Provides:\n- Stable, unique pod names (pod-0, pod-1, ...)\n- Stable network identity (DNS)\n- Ordered, graceful deployment and scaling\n- Persistent volume per pod that follows the pod\nBest for: databases (MySQL, MongoDB), distributed systems (Kafka, ZooKeeper).",
+      "difficulty": "beginner"
+    },
+    {
+      "id": 4,
+      "question": "What are Kubernetes Services? Explain different types.",
+      "answer": "A Service is an abstraction that exposes a set of Pods as a stable network endpoint. Since pods are ephemeral (IPs change), Services provide a stable IP and DNS name.\n\n**Types:**\n- **ClusterIP** (default) — Exposes service only within the cluster. Used for internal communication between services.\n- **NodePort** — Exposes service on a static port on each node's IP. Accessible from outside via `<NodeIP>:<NodePort>`. Range: 30000-32767.\n- **LoadBalancer** — Creates a cloud load balancer (AWS ELB, GCP LB). Best for production external traffic.\n- **ExternalName** — Maps service to an external DNS name (e.g., redirect to an external database).\n\nService uses label selectors to find matching pods. Traffic is load-balanced across all matching pods.",
+      "difficulty": "beginner"
+    },
+    {
+      "id": 5,
+      "question": "What is a ConfigMap and a Secret in Kubernetes?",
+      "answer": "**ConfigMap:** Stores non-sensitive configuration data as key-value pairs. Decouples config from container images.\n```yaml\napiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: app-config\ndata:\n  DB_HOST: postgres-service\n  LOG_LEVEL: info\n```\nUsage: Mount as volume or inject as environment variables.\n\n**Secret:** Stores sensitive data (passwords, tokens, keys). Values are base64-encoded (not encrypted by default — use encryption at rest + RBAC to secure).\n\n**Best practices for Secrets:**\n- Enable encryption at rest in etcd\n- Use external secret managers (AWS Secrets Manager, Vault) with operators like External Secrets Operator\n- Never commit Secrets to git\n- Limit access via RBAC",
+      "difficulty": "beginner"
+    },
+    {
+      "id": 6,
+      "question": "How does Kubernetes handle self-healing?",
+      "answer": "Kubernetes self-healing works through controllers constantly reconciling desired state vs actual state:\n\n1. **Pod failures** — kubelet detects container crash, restarts it based on `restartPolicy` (Always/OnFailure/Never)\n2. **Node failure** — Node controller detects node is unreachable (after ~5min), marks pods as `Unknown`, reschedules them on healthy nodes\n3. **ReplicaSet controller** — If a pod is deleted, ReplicaSet creates a new one to maintain desired count\n4. **Liveness Probes** — Periodically checks if the app is alive. If it fails, K8s kills and restarts the container:\n```yaml\nlivenessProbe:\n  httpGet:\n    path: /health\n    port: 8080\n  initialDelaySeconds: 30\n  periodSeconds: 10\n```\n5. **Readiness Probes** — Checks if app is ready to serve traffic. Unhealthy pods are removed from Service endpoints (no traffic).",
+      "difficulty": "intermediate"
+    },
+    {
+      "id": 7,
+      "question": "Explain Horizontal Pod Autoscaler (HPA) and Vertical Pod Autoscaler (VPA).",
+      "answer": "**HPA (Horizontal Pod Autoscaler):**\nAutomatically scales the number of pod replicas based on observed metrics.\n```yaml\napiVersion: autoscaling/v2\nkind: HorizontalPodAutoscaler\nspec:\n  scaleTargetRef:\n    kind: Deployment\n    name: myapp\n  minReplicas: 2\n  maxReplicas: 10\n  metrics:\n  - type: Resource\n    resource:\n      name: cpu\n      target:\n        type: Utilization\n        averageUtilization: 70\n```\nRequires metrics-server. Can scale on CPU, memory, or custom metrics (Prometheus).\n\n**VPA (Vertical Pod Autoscaler):**\nAutomatically adjusts CPU/memory **requests and limits** of containers based on historical usage. Doesn't add more pods — makes existing pods bigger.\n\n**Key difference:** HPA = more pods, VPA = bigger pods. Use HPA for stateless apps, VPA for stateful or single-instance workloads.",
+      "difficulty": "intermediate"
+    },
+    {
+      "id": 8,
+      "question": "What is a Kubernetes Ingress? How is it different from a LoadBalancer Service?",
+      "answer": "**LoadBalancer Service:** Creates a separate cloud load balancer per service — expensive ($$$) and doesn't support path-based routing.\n\n**Ingress:** A single entry point that routes HTTP/HTTPS traffic to multiple services based on hostname and path rules. Requires an Ingress Controller (nginx, Traefik, AWS ALB).\n\n```yaml\napiVersion: networking.k8s.io/v1\nkind: Ingress\nmetadata:\n  name: my-ingress\nspec:\n  rules:\n  - host: api.devopsboys.com\n    http:\n      paths:\n      - path: /v1\n        pathType: Prefix\n        backend:\n          service:\n            name: api-v1\n            port:\n              number: 80\n```\n\n**Ingress advantages:** One load balancer for all services, TLS termination, path-based routing, host-based routing, rate limiting (controller-dependent).",
+      "difficulty": "intermediate"
+    },
+    {
+      "id": 9,
+      "question": "Explain Kubernetes RBAC (Role-Based Access Control).",
+      "answer": "RBAC controls who can do what in a Kubernetes cluster. Key objects:\n\n**Role/ClusterRole:** Define permissions (verbs on resources)\n```yaml\nkind: Role\napiVersion: rbac.authorization.k8s.io/v1\nmetadata:\n  namespace: production\n  name: pod-reader\nrules:\n- apiGroups: [\"\"]\n  resources: [\"pods\"]\n  verbs: [\"get\", \"watch\", \"list\"]\n```\n- `Role` — scoped to a namespace\n- `ClusterRole` — cluster-wide\n\n**RoleBinding/ClusterRoleBinding:** Binds a Role to a User, Group, or ServiceAccount\n```yaml\nkind: RoleBinding\nsubjects:\n- kind: User\n  name: jane\nroleRef:\n  kind: Role\n  name: pod-reader\n```\n\n**Best practices:** Principle of least privilege, use ServiceAccounts for pods (not user accounts), audit regularly with `kubectl auth can-i`.",
+      "difficulty": "intermediate"
+    },
+    {
+      "id": 10,
+      "question": "What are Init Containers and Sidecar Containers? When do you use them?",
+      "answer": "**Init Containers:** Run and complete before the main container starts. Used for:\n- Pre-conditions (wait for database to be ready)\n- Setup tasks (download config files, run DB migrations)\n- Security (set up permissions)\n\n```yaml\ninitContainers:\n- name: wait-for-db\n  image: busybox\n  command: ['sh', '-c', 'until nc -z postgres-svc 5432; do sleep 2; done']\n```\n\n**Sidecar Containers:** Run alongside the main container in the same pod. Share network and volumes. Used for:\n- Logging (Fluent Bit shipper)\n- Monitoring (Prometheus exporter)\n- Proxies (Envoy/Istio service mesh)\n- Secret refresh (Vault agent)\n\n**Key difference:** Init containers run once and exit; sidecars run for the pod's lifetime. In Kubernetes 1.29+, sidecars can be declared as `initContainers` with `restartPolicy: Always` for proper lifecycle management.",
+      "difficulty": "intermediate"
+    },
+    {
+      "id": 11,
+      "question": "Explain Kubernetes networking — how do pods communicate across nodes?",
+      "answer": "Kubernetes networking follows 3 fundamental rules:\n1. Every pod gets a unique IP address\n2. Pods on any node can communicate with any other pod without NAT\n3. Agents on a node can communicate with all pods on that node\n\n**How it works (CNI plugins):**\nKubernetes delegates networking to CNI (Container Network Interface) plugins — Calico, Flannel, Cilium, Weave.\n\nExample with Flannel (overlay network):\n- Each node gets a subnet (e.g., Node1: 10.244.1.0/24, Node2: 10.244.2.0/24)\n- Flannel creates a VXLAN tunnel between nodes\n- Cross-node traffic: Pod → Node's flannel interface → VXLAN encapsulation → Other node → Decapsulate → Destination pod\n\n**Cilium** (eBPF-based): No overlay, uses kernel eBPF programs for routing. Much faster, supports network policies, observability.\n\n**Network Policies:** Kubernetes firewall rules — restrict pod-to-pod traffic:\n```yaml\n# Only allow frontend to talk to backend\ningress:\n- from:\n  - podSelector:\n      matchLabels:\n        role: frontend\n```",
+      "difficulty": "advanced"
+    },
+    {
+      "id": 12,
+      "question": "What is etcd and what happens if etcd goes down?",
+      "answer": "etcd is a distributed, consistent key-value store that serves as Kubernetes' brain — it stores all cluster state: nodes, pods, configs, secrets, RBAC rules, everything.\n\n**If etcd goes down:**\n- API server cannot persist new state → `kubectl` commands fail\n- Existing running pods continue to run (kubelet has local state)\n- No new pods can be scheduled\n- No scaling, no deployments, no config changes\n- Controllers cannot reconcile state\n\n**etcd reliability in production:**\n- Run as an odd-numbered cluster (3, 5, 7 nodes) — needs quorum (n/2 + 1)\n- 3 nodes: tolerates 1 failure; 5 nodes: tolerates 2 failures\n- Use SSD storage (etcd is latency-sensitive)\n- Backup regularly: `etcdctl snapshot save backup.db`\n- Store backups in S3 with lifecycle policies\n- Monitor etcd metrics: `etcd_server_leader_changes_seen_total`, `etcd_disk_wal_fsync_duration_seconds`",
+      "difficulty": "advanced"
+    },
+    {
+      "id": 13,
+      "question": "How do you implement zero-downtime deployments in Kubernetes?",
+      "answer": "**Strategy 1: Rolling Update (built-in)**\n```yaml\nstrategy:\n  type: RollingUpdate\n  rollingUpdate:\n    maxSurge: 1        # Extra pods during update\n    maxUnavailable: 0  # Never take pods down before new ones are ready\n```\nCombine with Readiness Probes — new pods only get traffic when ready.\n\n**Strategy 2: Blue/Green**\n- Run two identical environments (blue=current, green=new)\n- Switch Service selector to green after testing\n- Instant rollback by switching back\n\n**Strategy 3: Canary**\n- Route small % of traffic to new version (e.g., 5%)\n- Gradually increase if metrics are healthy\n- Use Argo Rollouts or Istio for traffic splitting\n\n**Essential additions for zero-downtime:**\n1. `preStop` hook + sleep to drain in-flight requests\n2. `terminationGracePeriodSeconds` — give app time to finish\n3. PodDisruptionBudget — ensures minimum pods always available\n4. Multiple replicas — never run a single replica in production",
+      "difficulty": "advanced"
+    },
+    {
+      "id": 14,
+      "question": "What is a Custom Resource Definition (CRD) and what is an Operator?",
+      "answer": "**CRD (Custom Resource Definition):** Extends the Kubernetes API to add your own resource types. Once created, you can `kubectl get myresource` like any native resource.\n\n```yaml\napiVersion: apiextensions.k8s.io/v1\nkind: CustomResourceDefinition\nmetadata:\n  name: databases.devopsboys.com\nspec:\n  group: devopsboys.com\n  names:\n    kind: Database\n    plural: databases\n  scope: Namespaced\n```\n\n**Operator Pattern:** A CRD + a Controller that watches that CRD and automates complex application lifecycle management. Operators encode human operational knowledge:\n\n- **Prometheus Operator** — Create a `PrometheusRule` YAML and it auto-configures scraping\n- **cert-manager** — Create a `Certificate` resource and it provisions/renews TLS certs automatically\n- **CloudNativePG** — Manages PostgreSQL clusters: replication, failover, backups\n\nOperators are built with frameworks: Operator SDK (Go/Ansible/Helm), Kubebuilder, Kopf (Python).",
+      "difficulty": "advanced"
+    },
+    {
+      "id": 15,
+      "question": "How do you troubleshoot a pod stuck in CrashLoopBackOff?",
+      "answer": "CrashLoopBackOff means the container keeps starting and immediately crashing. K8s adds exponential backoff delay between restarts.\n\n**Debugging steps:**\n\n1. **Check logs:**\n```bash\nkubectl logs <pod> --previous  # Logs from crashed container\nkubectl logs <pod> -c <container>  # Specific container\n```\n\n2. **Describe the pod:**\n```bash\nkubectl describe pod <pod>  # Exit code, events, resource limits\n```\nExit codes: 1=app error, 137=OOM/SIGKILL, 139=segfault, 143=SIGTERM\n\n3. **Check resource limits** — OOM? Increase memory limits\n\n4. **Override command to debug:**\n```bash\nkubectl debug -it <pod> --image=busybox --copy-to=debug-pod\n```\n\n5. **Check ConfigMap/Secret mounting** — Missing env vars cause startup failures\n\n6. **Check liveness probe** — Too aggressive initial delay? App taking longer to start?\n\n7. **Check node resources:** `kubectl top nodes` — node may be under pressure\n\n8. **Events:** `kubectl get events --sort-by=.lastTimestamp -n <namespace>`",
+      "difficulty": "advanced"
+    }
+  ]
+}

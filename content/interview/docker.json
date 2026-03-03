@@ -1,0 +1,98 @@
+{
+  "topic": "docker",
+  "label": "Docker",
+  "description": "Master Docker concepts from basics to advanced — containers, images, networking, volumes, and production best practices.",
+  "color": "blue",
+  "questions": [
+    {
+      "id": 1,
+      "question": "What is Docker and how is it different from a Virtual Machine?",
+      "answer": "Docker is a containerization platform that packages applications and their dependencies into lightweight containers. Unlike VMs, Docker containers share the host OS kernel — they don't need a full OS per instance. This makes containers start in milliseconds, use MBs of RAM instead of GBs, and be far more portable. VMs use a hypervisor to emulate hardware and run a full guest OS, making them heavier but providing stronger isolation.",
+      "difficulty": "beginner"
+    },
+    {
+      "id": 2,
+      "question": "What is the difference between a Docker Image and a Docker Container?",
+      "answer": "A Docker Image is a read-only blueprint — a snapshot of your application, OS layer, dependencies, and configuration. Think of it as a class in OOP. A Container is a running instance of that image — a live, isolated process. You can run multiple containers from the same image. Images are built using a Dockerfile and stored in registries like Docker Hub or ECR.",
+      "difficulty": "beginner"
+    },
+    {
+      "id": 3,
+      "question": "What is a Dockerfile? Explain key instructions.",
+      "answer": "A Dockerfile is a text file with instructions to build a Docker image. Key instructions:\n\n- `FROM` — Base image (e.g., `FROM node:20-alpine`)\n- `WORKDIR` — Set working directory\n- `COPY / ADD` — Copy files into image\n- `RUN` — Execute commands during build (install packages, etc.)\n- `ENV` — Set environment variables\n- `EXPOSE` — Document the port the container listens on\n- `CMD` — Default command to run when container starts (can be overridden)\n- `ENTRYPOINT` — Main executable (cannot be easily overridden)\n\n`CMD` is used for default arguments; `ENTRYPOINT` is used when the container should always run a specific executable.",
+      "difficulty": "beginner"
+    },
+    {
+      "id": 4,
+      "question": "What are Docker Volumes? Why are they needed?",
+      "answer": "Docker containers are ephemeral — data inside them is lost when the container stops. Volumes are Docker-managed persistent storage that lives outside the container filesystem. They allow:\n\n1. **Data persistence** — database data survives container restarts\n2. **Data sharing** — multiple containers can mount the same volume\n3. **Better performance** — volumes bypass the copy-on-write filesystem\n\nTypes: Named volumes (`docker volume create mydata`), bind mounts (map host path to container), tmpfs mounts (in-memory only).",
+      "difficulty": "beginner"
+    },
+    {
+      "id": 5,
+      "question": "What is Docker Compose and when would you use it?",
+      "answer": "Docker Compose is a tool for defining and running multi-container applications using a `docker-compose.yml` file. Instead of running multiple `docker run` commands, you define all services, networks, and volumes in one YAML file and start everything with `docker compose up`. Use it for local development environments — e.g., a web app + database + cache running together. It's not recommended for production (use Kubernetes or Docker Swarm instead).",
+      "difficulty": "beginner"
+    },
+    {
+      "id": 6,
+      "question": "Explain Docker networking modes.",
+      "answer": "Docker has several network drivers:\n\n- **bridge** (default) — Containers on the same bridge network can communicate using container names as hostnames. Isolated from host.\n- **host** — Container shares the host's network namespace. No isolation. Best for performance-critical apps.\n- **none** — No networking. Completely isolated.\n- **overlay** — For multi-host networking in Docker Swarm. Allows containers on different Docker hosts to communicate.\n- **macvlan** — Assigns a MAC address to the container, making it appear as a physical device on the network.\n\nIn practice, create custom bridge networks for service isolation and use overlay for distributed systems.",
+      "difficulty": "intermediate"
+    },
+    {
+      "id": 7,
+      "question": "What is the difference between CMD and ENTRYPOINT in a Dockerfile?",
+      "answer": "Both define what runs when a container starts, but they behave differently:\n\n- **ENTRYPOINT** — The main executable. Always runs. Cannot be overridden by `docker run` arguments (unless using `--entrypoint` flag). Use when the container has a single, fixed purpose.\n- **CMD** — Default arguments. Can be completely replaced by `docker run image <new-command>`. Often used with ENTRYPOINT to provide default args.\n\nExample:\n```dockerfile\nENTRYPOINT [\"nginx\"]\nCMD [\"-g\", \"daemon off;\"]\n```\nRunning `docker run myimage -t` would replace CMD: `nginx -t` runs instead.\n\nBest practice: Use `ENTRYPOINT` for the executable and `CMD` for default arguments.",
+      "difficulty": "intermediate"
+    },
+    {
+      "id": 8,
+      "question": "What are multi-stage builds in Docker and why are they important?",
+      "answer": "Multi-stage builds allow you to use multiple FROM statements in a Dockerfile. Each stage can use a different base image, and you can selectively copy artifacts from one stage to another.\n\n**Why it matters:** Production images don't need build tools (compilers, test frameworks). Multi-stage builds let you build in a heavy image and copy only the binary/artifact to a minimal runtime image.\n\nExample:\n```dockerfile\n# Stage 1: Build\nFROM golang:1.21 AS builder\nWORKDIR /app\nCOPY . .\nRUN go build -o myapp\n\n# Stage 2: Runtime\nFROM alpine:3.19\nCOPY --from=builder /app/myapp /myapp\nCMD [\"/myapp\"]\n```\nResult: Final image is ~10MB instead of ~800MB.",
+      "difficulty": "intermediate"
+    },
+    {
+      "id": 9,
+      "question": "How do you reduce Docker image size?",
+      "answer": "Key strategies:\n\n1. **Use minimal base images** — `alpine`, `distroless`, or `scratch` instead of `ubuntu`\n2. **Multi-stage builds** — Only copy final artifacts to runtime image\n3. **Combine RUN commands** — Each RUN creates a layer; chain with `&&` to reduce layers\n4. **Use .dockerignore** — Exclude unnecessary files (node_modules, .git, tests)\n5. **Remove build dependencies** — `apt-get install && apt-get purge` in the same RUN\n6. **Avoid installing unnecessary tools** — No curl, wget in prod unless needed\n7. **Use specific tags** — `node:20-alpine` not `node:latest`\n\nTools: `docker image inspect`, `dive` CLI to analyze layer-by-layer.",
+      "difficulty": "intermediate"
+    },
+    {
+      "id": 10,
+      "question": "What is Docker layer caching and how do you optimize it?",
+      "answer": "Docker builds images in layers. Each instruction in a Dockerfile creates a layer. Layers are cached — if nothing changes in that layer or its inputs, Docker reuses the cached layer, making rebuilds fast.\n\n**How to optimize:**\n1. **Order matters** — Put rarely changing instructions first. Copy `package.json` and `npm install` before copying source code:\n```dockerfile\nCOPY package*.json ./\nRUN npm ci\nCOPY . .\n```\nThis way, npm install layer is cached unless dependencies change.\n\n2. **Don't invalidate cache unnecessarily** — Avoid `COPY . .` early in the Dockerfile\n3. **Use `--no-cache` in CI** when you want a fresh build\n4. **BuildKit** (`DOCKER_BUILDKIT=1`) has smarter caching than classic builder",
+      "difficulty": "intermediate"
+    },
+    {
+      "id": 11,
+      "question": "How do you implement Docker security best practices in production?",
+      "answer": "Production Docker security checklist:\n\n1. **Run as non-root user:**\n```dockerfile\nRUN addgroup -S appgroup && adduser -S appuser -G appgroup\nUSER appuser\n```\n2. **Use read-only filesystems:** `docker run --read-only`\n3. **Drop Linux capabilities:** `--cap-drop=ALL --cap-add=NET_BIND_SERVICE`\n4. **Use distroless or minimal images** — reduces attack surface\n5. **Scan images for vulnerabilities:** Trivy, Snyk, Docker Scout\n6. **Never store secrets in images** — use Docker secrets, Vault, or env vars at runtime\n7. **Sign images:** Docker Content Trust (`DOCKER_CONTENT_TRUST=1`)\n8. **Limit resources:** `--memory`, `--cpus` flags\n9. **Use private registries** with access controls\n10. **Enable AppArmor/Seccomp profiles** for syscall filtering",
+      "difficulty": "advanced"
+    },
+    {
+      "id": 12,
+      "question": "Explain Docker's copy-on-write (CoW) mechanism.",
+      "answer": "Docker uses a Union File System (like OverlayFS) with copy-on-write semantics. Images consist of read-only layers stacked on top of each other. When a container starts, Docker adds a thin writable layer on top.\n\n**How CoW works:**\n- Reading: If a file exists in a lower layer, it's read directly without copying\n- Writing: If a container modifies a file from a read-only layer, that file is first **copied** to the writable layer, then modified. The original in the lower layer remains unchanged.\n- Deleting: A whiteout file is created in the writable layer masking the lower layer file\n\n**Implication for performance:** First write to any file triggers a copy — can be slow for large files. For write-heavy workloads (databases), use volumes instead of the container filesystem.",
+      "difficulty": "advanced"
+    },
+    {
+      "id": 13,
+      "question": "How would you set up a production-grade Docker logging strategy?",
+      "answer": "Docker logging strategy for production:\n\n**Logging drivers:** Configure in `daemon.json` or per container:\n- `json-file` (default) — logs to host as JSON, can fill disk\n- `fluentd` — ship to Fluentd/Fluent Bit\n- `awslogs` — ship directly to CloudWatch\n- `gelf` — ship to Graylog/ELK\n\n**Best practices:**\n1. **Write to stdout/stderr** — don't log to files inside containers\n2. **Set log rotation:** `--log-opt max-size=10m --log-opt max-file=3`\n3. **Use a sidecar or log shipper** — Fluent Bit as DaemonSet in Kubernetes\n4. **Structured logging** — JSON format for easy parsing\n5. **Centralize** — Ship to ELK Stack, Loki, Datadog, or CloudWatch\n6. **Correlate with trace IDs** — For distributed tracing",
+      "difficulty": "advanced"
+    },
+    {
+      "id": 14,
+      "question": "What is Docker BuildKit and what advantages does it offer over the classic builder?",
+      "answer": "BuildKit is Docker's next-generation build engine (`DOCKER_BUILDKIT=1`). Advantages over classic builder:\n\n1. **Parallel stage execution** — Multi-stage builds run stages in parallel when possible\n2. **Better caching** — Content-addressable cache, cache mounts for package managers\n3. **Cache mounts:** `RUN --mount=type=cache,target=/root/.npm npm install` — npm cache persists across builds\n4. **Secret mounts:** `RUN --mount=type=secret,id=mysecret` — secrets available during build, not stored in layers\n5. **SSH mounts** — Forward SSH agent for private git repos\n6. **Efficient layer transfer** — Only transfers changed layers\n7. **Build output flexibility** — Export to OCI, tar, registry\n\nEnabled by default in Docker 23+. Use `--progress=plain` to see detailed output.",
+      "difficulty": "advanced"
+    },
+    {
+      "id": 15,
+      "question": "How do you debug a Docker container that exits immediately or behaves unexpectedly?",
+      "answer": "Systematic debugging approach:\n\n1. **Check exit logs:** `docker logs <container-id>`\n2. **Check exit code:** `docker inspect <container-id> --format='{{.State.ExitCode}}'` (exit 1=error, 137=OOM killed, 139=segfault)\n3. **Override entrypoint to get a shell:**\n```bash\ndocker run -it --entrypoint /bin/sh myimage\n```\n4. **Exec into running container:** `docker exec -it <id> /bin/sh`\n5. **Run with verbose output:** Add `set -x` in scripts\n6. **Inspect container state:** `docker inspect <container-id>`\n7. **Check resource limits:** `docker stats <container-id>`\n8. **Check OOM:** `dmesg | grep -i kill` on host\n9. **Use `--rm` flag** to auto-remove after exit and see clean logs\n10. **Docker events:** `docker events --filter container=<id>`",
+      "difficulty": "advanced"
+    }
+  ]
+}

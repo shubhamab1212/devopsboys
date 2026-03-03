@@ -1,0 +1,74 @@
+{
+  "topic": "devops",
+  "label": "DevOps",
+  "description": "Core DevOps concepts, culture, practices, and tools — CI/CD, monitoring, infrastructure as code, and SRE principles.",
+  "color": "emerald",
+  "questions": [
+    {
+      "id": 1,
+      "question": "What is DevOps? How is it different from traditional IT?",
+      "answer": "DevOps is a culture and set of practices that unifies software development (Dev) and IT operations (Ops) to shorten the development lifecycle and deliver high-quality software continuously.\n\n**Traditional IT:**\n- Dev and Ops teams work in silos\n- Dev throws code 'over the wall' to Ops\n- Infrequent, large releases (every few months)\n- Manual processes, slow feedback loops\n- 'It works on my machine' problems\n\n**DevOps approach:**\n- Shared responsibility — Dev owns production\n- Continuous delivery with small, frequent releases\n- Automation everywhere — build, test, deploy, infrastructure\n- Fast feedback loops (monitoring, alerting)\n- Infrastructure as Code\n- Collaboration through shared tools (Git, Slack, dashboards)\n\n**Key metrics (DORA):** Deployment frequency, Lead time for changes, Change failure rate, Mean time to recovery (MTTR).",
+      "difficulty": "beginner"
+    },
+    {
+      "id": 2,
+      "question": "What is CI/CD? Explain the difference between Continuous Integration, Delivery, and Deployment.",
+      "answer": "**Continuous Integration (CI):**\nDevelopers merge code frequently (multiple times/day) into a shared branch. Each merge triggers automated build and tests. Goal: catch bugs early, avoid integration hell.\n\n**Continuous Delivery (CD):**\nExtends CI — every successful build is automatically deployed to staging/pre-prod environment. Release to production requires a manual approval button. Code is always in a deployable state.\n\n**Continuous Deployment:**\nEvery successful build goes automatically to production — no manual gates. Requires high confidence in automated tests and monitoring.\n\n**Pipeline stages typically:**\n1. Code commit → trigger\n2. Build (compile, lint)\n3. Unit tests\n4. Integration tests\n5. Security scan (SAST, SCA)\n6. Build Docker image\n7. Push to registry\n8. Deploy to staging\n9. E2E tests\n10. Manual approval (Delivery) OR auto-deploy (Deployment)\n11. Production deploy\n12. Smoke tests\n13. Monitoring/alerting",
+      "difficulty": "beginner"
+    },
+    {
+      "id": 3,
+      "question": "What is Infrastructure as Code (IaC)? What are its benefits?",
+      "answer": "Infrastructure as Code means managing and provisioning infrastructure through machine-readable configuration files instead of manual processes.\n\n**Tools:** Terraform, AWS CloudFormation, Pulumi, Ansible, Chef, Puppet\n\n**Benefits:**\n- **Version control** — Infrastructure changes tracked in Git like code\n- **Reproducibility** — Spin up identical environments (dev/staging/prod) every time\n- **Automation** — No manual clicking in consoles\n- **Documentation** — Code IS the documentation\n- **Testing** — Test infrastructure changes before applying\n- **Disaster recovery** — Rebuild entire infrastructure from code\n- **Collaboration** — PR reviews for infrastructure changes\n- **Drift detection** — Detect when actual state differs from desired state\n\n**Categories:**\n- **Declarative** (Terraform, CloudFormation) — Describe desired end state, tool figures out how\n- **Imperative** (Ansible scripts) — Describe exact steps to take",
+      "difficulty": "beginner"
+    },
+    {
+      "id": 4,
+      "question": "What is the difference between Blue/Green and Canary deployments?",
+      "answer": "**Blue/Green Deployment:**\n- Run two identical production environments (Blue = current, Green = new)\n- Deploy to Green, test it, then switch all traffic from Blue to Green instantly\n- Rollback = switch back to Blue (instant)\n- Zero downtime, instant rollback\n- Downside: Requires 2x infrastructure cost\n\n**Canary Deployment:**\n- Gradually shift traffic to new version (e.g., 1% → 5% → 25% → 100%)\n- Monitor errors/latency at each stage\n- If issues detected, route back to old version\n- Named after 'canary in a coal mine'\n- Lower risk for large user bases\n- Tools: Argo Rollouts, Flagger, nginx/Istio traffic splitting\n\n**When to use:**\n- Blue/Green: Critical systems, need instant rollback, can afford double infra\n- Canary: Large user base, want gradual validation, cost-conscious\n\n**Rolling update** (third option): Replace pods one-by-one, balances between the two.",
+      "difficulty": "beginner"
+    },
+    {
+      "id": 5,
+      "question": "What is Git branching strategy? Explain GitFlow vs Trunk-Based Development.",
+      "answer": "**GitFlow:**\n- Multiple long-lived branches: `main`, `develop`, `feature/*`, `release/*`, `hotfix/*`\n- Features branch from `develop`, merged back via PR\n- Release branches for stabilization\n- Hotfixes go directly to `main` + backport to `develop`\n- Suitable for: software with versioned releases, multiple supported versions\n\n**Trunk-Based Development (TBD):**\n- Everyone commits to `main` (trunk) frequently\n- Short-lived feature branches (1-2 days max)\n- Feature flags for incomplete features\n- CI/CD runs on every commit to main\n- Suitable for: web apps, SaaS products, teams practicing continuous deployment\n\n**Industry trend:** Most high-performing DevOps teams use TBD. GitFlow creates merge conflicts and slow integration. GitHub Flow (simpler GitFlow) is a good middle ground: feature branch → PR → merge to main → deploy.",
+      "difficulty": "beginner"
+    },
+    {
+      "id": 6,
+      "question": "What is the difference between monitoring, observability, and alerting?",
+      "answer": "**Monitoring:** Watching known metrics to detect known failure modes. Dashboards showing CPU, memory, request rate. You know what questions to ask.\n\n**Observability:** Ability to understand the internal state of a system from its external outputs. Going beyond monitoring to answer unknown questions. Built on three pillars:\n- **Metrics** — Numeric measurements over time (Prometheus)\n- **Logs** — Timestamped event records (Loki, CloudWatch)\n- **Traces** — Request journeys across services (Jaeger, Zipkin, AWS X-Ray)\n\n**Alerting:** Notify humans when something exceeds a threshold. Key to good alerting:\n- Alert on symptoms (high error rate) not causes (high CPU)\n- Every alert should be actionable\n- Avoid alert fatigue — too many false positives = ignored alerts\n- Set proper thresholds with hysteresis\n\n**The difference:** Monitoring tells you WHEN something is wrong. Observability tells you WHY. Alerting tells WHO needs to know.",
+      "difficulty": "intermediate"
+    },
+    {
+      "id": 7,
+      "question": "What are SLIs, SLOs, and SLAs? How do error budgets work?",
+      "answer": "SRE (Site Reliability Engineering) framework for reliability:\n\n**SLI (Service Level Indicator):** Quantitative measure of service behavior. E.g., request latency (p99 < 200ms), availability (successful requests / total requests).\n\n**SLO (Service Level Objective):** Target value for an SLI. Internal agreement. E.g., 'p99 latency < 200ms for 99.9% of requests over 30 days.'\n\n**SLA (Service Level Agreement):** External contract with customers. Consequence if breached (refunds, penalties). SLO is usually stricter than SLA to give buffer.\n\n**Error Budget:** The allowed amount of unreliability.\n- 99.9% SLO = 0.1% error budget = 43.8 minutes downtime/month\n- If budget is full: reliability work takes priority\n- If budget has headroom: feature development can be faster\n\n**Error budget policy:**\n- If error budget depleted: freeze releases, focus on reliability\n- If budget healthy: teams can ship faster and take more risk\n\nThis creates a data-driven negotiation between Dev (velocity) and Ops (reliability).",
+      "difficulty": "intermediate"
+    },
+    {
+      "id": 8,
+      "question": "How do you implement secret management in a DevOps pipeline?",
+      "answer": "**Never do:**\n- Hardcode secrets in code\n- Commit secrets to git (even in private repos)\n- Store in environment variables on developer machines\n- Put in Docker images\n\n**Solutions by complexity:**\n\n**Simple: Environment variables at runtime**\n- CI/CD tool secrets (GitHub Actions Secrets, GitLab CI Variables)\n- Injected at build/deploy time, not stored in repo\n\n**Better: Dedicated secret managers**\n- **HashiCorp Vault** — Dynamic secrets, secret leasing, audit logs\n- **AWS Secrets Manager** — Auto-rotation, native AWS integration\n- **AWS Parameter Store** — Cheaper, good for config + secrets\n- **GCP Secret Manager, Azure Key Vault**\n\n**Kubernetes: External Secrets Operator**\n- Syncs secrets from Vault/AWS Secrets Manager into Kubernetes Secrets\n- Automatic rotation support\n\n**Git-committed encrypted secrets:**\n- SOPS (Secrets OPerationS) with KMS encryption\n- Sealed Secrets (Bitnami) — encrypted secrets safe to commit\n\n**Best practices:** Rotate secrets regularly, audit access, use short-lived tokens, separate secrets per environment.",
+      "difficulty": "intermediate"
+    },
+    {
+      "id": 9,
+      "question": "What is GitOps? How does it differ from traditional CI/CD?",
+      "answer": "GitOps is an operational framework where Git is the single source of truth for both application code AND infrastructure/configuration. Changes to production happen only through Git commits.\n\n**Core principles:**\n1. Declarative — System state described declaratively\n2. Versioned and immutable — Git history is the audit log\n3. Pulled automatically — Software agent reconciles desired (Git) vs actual state\n4. Continuously reconciled — Agent detects and corrects drift\n\n**Traditional CI/CD (Push):**\nGit push → CI runs → CI pushes changes to cluster\n\n**GitOps (Pull):**\nGit push → GitOps agent (ArgoCD/Flux) detects change → Agent pulls and applies to cluster\n\n**Benefits of GitOps:**\n- Cluster credentials not in CI system\n- Full audit trail in Git\n- Easy rollback (revert commit)\n- Drift detection and auto-remediation\n\n**Tools:** ArgoCD, Flux, Rancher Fleet\n\n**ArgoCD workflow:** App YAML in Git → ArgoCD watches repo → Syncs to Kubernetes → Shows drift in UI if someone manually changes cluster.",
+      "difficulty": "intermediate"
+    },
+    {
+      "id": 10,
+      "question": "How do you implement DevSecOps? What is shift-left security?",
+      "answer": "**Shift-Left Security:** Move security checks earlier in the development lifecycle — during coding and CI, not after deployment.\n\n**DevSecOps pipeline integration:**\n\n**IDE/Pre-commit stage:**\n- Secret scanning hooks (detect-secrets, truffleHog)\n- Linting with security rules (eslint-security)\n- `git-secrets` to prevent credential commits\n\n**CI stage:**\n- **SAST** (Static Application Security Testing) — Semgrep, SonarQube, CodeQL\n- **SCA** (Software Composition Analysis) — Snyk, Dependabot (check vulnerable dependencies)\n- Container image scanning — Trivy, Grype\n- IaC scanning — Checkov, tfsec (Terraform security)\n- License compliance checks\n\n**CD/Runtime stage:**\n- **DAST** (Dynamic Application Security Testing) — OWASP ZAP against staging\n- Runtime security — Falco (K8s runtime threat detection)\n- RASP (Runtime Application Self-Protection)\n\n**Post-deployment:**\n- Cloud security posture management (AWS Security Hub, Prisma Cloud)\n- Penetration testing\n- Bug bounty programs\n\n**Key:** Security team shifts from gatekeeper to enabler — provide tools, train developers.",
+      "difficulty": "advanced"
+    },
+    {
+      "id": 11,
+      "question": "How do you design a highly available, scalable CI/CD system?",
+      "answer": "Architecture for a production CI/CD platform:\n\n**Source control:** GitHub/GitLab with branch protection, required reviews, status checks\n\n**CI system design (Jenkins example):**\n- Jenkins controller in HA mode (active-passive with shared storage)\n- Dynamic agents: Kubernetes plugin spins up build pods on-demand\n- Build pods defined as code (JCasC, Jenkinsfile)\n- Agents auto-scale based on queue depth\n\n**Artifact management:**\n- Nexus/Artifactory for build artifacts\n- ECR/GCR for container images with retention policies\n- Signing and attestation for supply chain security\n\n**Deployment pipeline:**\n- GitOps with ArgoCD for Kubernetes\n- Progressive delivery with Argo Rollouts\n- Automated smoke tests post-deploy\n- Automatic rollback on error threshold breach\n\n**Observability:**\n- Pipeline metrics: build time, success rate, queue depth\n- Alert on: build failures, long queue times, deployment failures\n- Dashboard: DORA metrics (deployment frequency, lead time)\n\n**Disaster recovery:**\n- Pipeline as code in Git (not configured through UI)\n- Regular backups of CI state\n- Runbook for rebuilding CI system from scratch",
+      "difficulty": "advanced"
+    }
+  ]
+}

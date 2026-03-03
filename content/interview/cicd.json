@@ -1,0 +1,68 @@
+{
+  "topic": "cicd",
+  "label": "CI/CD",
+  "description": "Master CI/CD pipelines — GitHub Actions, Jenkins, ArgoCD, pipeline design, and deployment strategies.",
+  "color": "cyan",
+  "questions": [
+    {
+      "id": 1,
+      "question": "What is GitHub Actions? Explain key concepts.",
+      "answer": "GitHub Actions is a CI/CD platform built into GitHub. Automate workflows triggered by GitHub events.\n\n**Key concepts:**\n- **Workflow** — YAML file in `.github/workflows/`. Defines the automation\n- **Event** — What triggers the workflow (`push`, `pull_request`, `schedule`, `workflow_dispatch`)\n- **Job** — A set of steps that run on a runner. Jobs run in parallel by default\n- **Step** — Individual task in a job (run a shell command or use an Action)\n- **Action** — Reusable unit of code (from GitHub Marketplace or custom)\n- **Runner** — The machine that executes jobs (GitHub-hosted: ubuntu, windows, macos; or self-hosted)\n\n**Simple example:**\n```yaml\nname: CI\non: [push, pull_request]\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n    - uses: actions/checkout@v4\n    - uses: actions/setup-node@v4\n      with:\n        node-version: '20'\n    - run: npm ci\n    - run: npm test\n```",
+      "difficulty": "beginner"
+    },
+    {
+      "id": 2,
+      "question": "What is Jenkins? How is it different from GitHub Actions?",
+      "answer": "Jenkins is an open-source, self-hosted automation server. The most widely used CI/CD tool in enterprises.\n\n**Jenkins key features:**\n- Highly extensible — 1800+ plugins\n- Pipeline as code (Jenkinsfile in Groovy)\n- Supports any language, tool, cloud\n- Master-agent architecture for distributed builds\n- Full control over build environment\n\n**GitHub Actions vs Jenkins:**\n\n| | GitHub Actions | Jenkins |\n|---|---|---|\n| Hosting | GitHub-managed | Self-hosted |\n| Setup | Zero setup | Install + maintain |\n| Cost | Free tier available | Free (but infra cost) |\n| Config | YAML | Groovy (Jenkinsfile) |\n| Plugins | GitHub Marketplace | 1800+ plugins |\n| Best for | GitHub repos, modern teams | Enterprise, complex pipelines |\n\n**When to choose Jenkins:**\n- On-premises requirements\n- Complex pipeline logic\n- Existing Jenkins investment\n- Need specific plugin ecosystem\n\n**When to choose GitHub Actions:**\n- Code already on GitHub\n- Simpler setup\n- Cloud-native approach",
+      "difficulty": "beginner"
+    },
+    {
+      "id": 3,
+      "question": "How do you securely pass secrets in a CI/CD pipeline?",
+      "answer": "**GitHub Actions:**\n- Store in GitHub Secrets (Settings → Secrets and variables → Actions)\n- Reference in workflow: `${{ secrets.MY_SECRET }}`\n- GitHub masks secrets in logs automatically\n- Use Environment secrets for environment-specific values\n\n**Jenkins:**\n- Jenkins Credentials store (Manage Jenkins → Credentials)\n- Use `withCredentials` block in Jenkinsfile:\n```groovy\nwithCredentials([string(credentialsId: 'my-secret', variable: 'SECRET')]) {\n  sh 'echo $SECRET | deploy.sh'\n}\n```\n\n**Best practices:**\n- Use OIDC (OpenID Connect) to avoid long-lived credentials:\n  - GitHub Actions → AWS: use `aws-actions/configure-aws-credentials` with OIDC\n  - No AWS Access Key stored — temporary tokens issued per run\n- Scope secrets to specific environments\n- Rotate secrets regularly\n- Never `echo` secrets (they appear in logs)\n- Use secret managers (Vault, AWS Secrets Manager) for runtime secrets",
+      "difficulty": "beginner"
+    },
+    {
+      "id": 4,
+      "question": "What is ArgoCD? How does it implement GitOps?",
+      "answer": "ArgoCD is a declarative, GitOps continuous delivery tool for Kubernetes. It continuously monitors Git repositories and automatically syncs the desired state to the cluster.\n\n**How it works:**\n1. Define Kubernetes manifests in Git (Helm charts, Kustomize, plain YAML)\n2. Create an ArgoCD Application pointing to the Git repo + target cluster\n3. ArgoCD polls Git every 3 minutes (or webhook for instant sync)\n4. Detects drift between Git (desired) and cluster (actual)\n5. Auto-syncs or notifies of drift (based on config)\n\n**Key features:**\n- **Multi-cluster** — Manage multiple Kubernetes clusters from one ArgoCD\n- **Application of Applications** — Deploy ArgoCD apps declaratively (App of Apps pattern)\n- **RBAC** — Fine-grained access control\n- **Rollback** — Click button to revert to any previous Git commit\n- **Health status** — Visual representation of all resources\n- **Sync waves** — Control deployment order\n\n**ArgoCD vs Flux:** Both implement GitOps. ArgoCD has better UI, Flux is more lightweight and Kubernetes-native.",
+      "difficulty": "intermediate"
+    },
+    {
+      "id": 5,
+      "question": "How do you build a Docker image in CI and push to ECR?",
+      "answer": "**GitHub Actions example (AWS ECR):**\n```yaml\nname: Build and Push to ECR\non:\n  push:\n    branches: [main]\njobs:\n  build:\n    runs-on: ubuntu-latest\n    permissions:\n      id-token: write  # For OIDC\n      contents: read\n    steps:\n    - uses: actions/checkout@v4\n    \n    - name: Configure AWS credentials\n      uses: aws-actions/configure-aws-credentials@v4\n      with:\n        role-to-assume: arn:aws:iam::123456789:role/GitHubActionsRole\n        aws-region: us-east-1\n    \n    - name: Login to ECR\n      id: login-ecr\n      uses: aws-actions/amazon-ecr-login@v2\n    \n    - name: Build and push\n      env:\n        REGISTRY: ${{ steps.login-ecr.outputs.registry }}\n        IMAGE_TAG: ${{ github.sha }}\n      run: |\n        docker build -t $REGISTRY/myapp:$IMAGE_TAG .\n        docker push $REGISTRY/myapp:$IMAGE_TAG\n```\n\n**Best practices:**\n- Use git SHA as image tag (not `latest`)\n- Use OIDC instead of access keys\n- Enable Docker BuildKit for faster builds\n- Use layer caching in CI: `cache-from` flag",
+      "difficulty": "intermediate"
+    },
+    {
+      "id": 6,
+      "question": "What is a Jenkinsfile? Explain Declarative vs Scripted pipeline.",
+      "answer": "A Jenkinsfile defines a Jenkins pipeline as code stored in the repository.\n\n**Declarative Pipeline (recommended):**\n```groovy\npipeline {\n  agent any\n  environment {\n    IMAGE_TAG = \"${env.BUILD_NUMBER}\"\n  }\n  stages {\n    stage('Build') {\n      steps {\n        sh 'docker build -t myapp:$IMAGE_TAG .'\n      }\n    }\n    stage('Test') {\n      steps {\n        sh 'npm test'\n      }\n      post {\n        always {\n          junit 'test-results/*.xml'\n        }\n      }\n    }\n    stage('Deploy') {\n      when {\n        branch 'main'\n      }\n      steps {\n        sh './deploy.sh'\n      }\n    }\n  }\n  post {\n    failure {\n      slackSend message: \"Build failed: ${env.BUILD_URL}\"\n    }\n  }\n}\n```\n\n**Scripted Pipeline:** Full Groovy code wrapped in `node {}` blocks. More flexibility, more complex. Use Declarative unless you need advanced logic.\n\n**Key Declarative features:** `agent`, `stages`, `steps`, `environment`, `when` conditions, `post` actions, `parameters`.",
+      "difficulty": "intermediate"
+    },
+    {
+      "id": 7,
+      "question": "How do you implement pipeline caching to speed up CI builds?",
+      "answer": "Caching dependencies between builds dramatically reduces build time.\n\n**GitHub Actions caching:**\n```yaml\n- uses: actions/cache@v4\n  with:\n    path: ~/.npm\n    key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}\n    restore-keys: |\n      ${{ runner.os }}-node-\n\n- run: npm ci\n```\nKey is hash of lock file — cache invalidates when dependencies change.\n\n**Docker layer caching in GitHub Actions:**\n```yaml\n- uses: docker/build-push-action@v5\n  with:\n    cache-from: type=gha\n    cache-to: type=gha,mode=max\n```\n\n**Jenkins:**\n- Use `stash/unstash` to pass files between stages\n- Mount shared cache volumes to agent pods (Kubernetes plugin)\n- Nexus/Artifactory as dependency proxy cache\n\n**What to cache:**\n- `node_modules` / `~/.npm` for Node.js\n- `~/.m2` for Maven\n- `~/.gradle` for Gradle\n- `vendor/` for Go modules\n- Docker layers\n\n**Cache key strategy:** Hash of dependency file → cache miss only when deps actually change.",
+      "difficulty": "intermediate"
+    },
+    {
+      "id": 8,
+      "question": "How do you implement progressive delivery with Argo Rollouts?",
+      "answer": "Argo Rollouts extends Kubernetes Deployments with advanced deployment strategies.\n\n**Canary with Argo Rollouts:**\n```yaml\napiVersion: argoproj.io/v1alpha1\nkind: Rollout\nmetadata:\n  name: myapp\nspec:\n  replicas: 10\n  strategy:\n    canary:\n      steps:\n      - setWeight: 5      # 5% traffic to new version\n      - pause: {duration: 10m}\n      - setWeight: 25\n      - pause: {duration: 10m}\n      - analysis:         # Automated analysis\n          templates:\n          - templateName: success-rate\n      - setWeight: 100\n      canaryService: myapp-canary\n      stableService: myapp-stable\n      trafficRouting:\n        nginx:\n          stableIngress: myapp-ingress\n```\n\n**AnalysisTemplate (automated rollback):**\n```yaml\nkind: AnalysisTemplate\nspec:\n  metrics:\n  - name: success-rate\n    provider:\n      prometheus:\n        query: sum(rate(http_requests_total{status=~\"2..\"}[5m])) / sum(rate(http_requests_total[5m]))\n    successCondition: result[0] >= 0.95\n```\n\nIf success rate drops below 95%, rollout automatically pauses/rolls back.",
+      "difficulty": "advanced"
+    },
+    {
+      "id": 9,
+      "question": "How do you optimize a slow CI/CD pipeline?",
+      "answer": "Systematic approach to pipeline optimization:\n\n**Measure first:**\n- Identify bottlenecks: which stage takes longest?\n- Track build time trends over time\n\n**Parallelization:**\n```yaml\njobs:\n  test-unit:\n    ...\n  test-integration:\n    needs: build\n    ...\n  security-scan:\n    needs: build\n    ...\n# test-unit, test-integration, security-scan run in parallel\n```\n\n**Caching:**\n- Cache dependencies (npm, Maven, pip)\n- Cache Docker layers\n- Cache test results (skip passing tests)\n\n**Test optimization:**\n- Run tests in parallel (`--shard` in Jest, pytest-xdist)\n- Run only affected tests (changed files)\n- Fail fast — run quickest tests first\n\n**Build optimization:**\n- Multi-stage Docker builds\n- BuildKit with cache mounts\n- Self-hosted runners on same network as registry/cluster\n\n**Skip unnecessary work:**\n- Conditional triggers (only build what changed in monorepo)\n- Skip deployment if no functional changes\n- Turbo/Nx for monorepo affected detection\n\n**Infrastructure:**\n- Larger/faster runners\n- Spot instances for CI agents\n- Collocate runners with artifact registry",
+      "difficulty": "advanced"
+    },
+    {
+      "id": 10,
+      "question": "How do you implement multi-environment CI/CD with proper promotion strategy?",
+      "answer": "**Environment promotion strategy:**\n```\ndev → staging → production\n```\n\n**GitOps-based promotion with ArgoCD:**\n```\n├── apps/\n│   ├── dev/\n│   │   └── values.yaml (image: app:feature-123)\n│   ├── staging/\n│   │   └── values.yaml (image: app:main-abc123)\n│   └── production/\n│       └── values.yaml (image: app:v1.2.3-tagged)\n```\n\n**Promotion flow:**\n1. CI builds image, tags with git SHA\n2. CI auto-updates dev environment values file\n3. ArgoCD detects change, deploys to dev\n4. E2E tests pass → automated PR to update staging values\n5. PR approval → merge → ArgoCD deploys to staging\n6. Manual approval / release tag → update production values\n7. ArgoCD deploys to production\n\n**GitHub Environments:**\n```yaml\njobs:\n  deploy-prod:\n    environment:\n      name: production\n      url: https://devopsboys.com\n    # Requires reviewer approval\n```\n\n**Key practices:**\n- Immutable image tags (SHA-based)\n- Same image across all environments\n- Environment-specific config via Helm values or Kustomize overlays\n- Automated tests at each stage gate",
+      "difficulty": "advanced"
+    }
+  ]
+}
