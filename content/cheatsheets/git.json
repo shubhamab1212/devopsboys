@@ -1,0 +1,101 @@
+{
+  "slug": "git",
+  "label": "Git",
+  "color": "emerald",
+  "description": "Git commands for everyday workflow, branching, remote operations, undo, and advanced usage.",
+  "sections": [
+    {
+      "title": "Setup & Init",
+      "commands": [
+        { "cmd": "git init", "desc": "Initialize new git repository in current dir" },
+        { "cmd": "git clone https://github.com/user/repo.git", "desc": "Clone remote repository" },
+        { "cmd": "git clone https://github.com/user/repo.git --depth=1", "desc": "Shallow clone (only latest commit, faster)" },
+        { "cmd": "git config --global user.name \"Your Name\"", "desc": "Set global username" },
+        { "cmd": "git config --global user.email \"you@example.com\"", "desc": "Set global email" },
+        { "cmd": "git config --global core.editor vim", "desc": "Set default editor" },
+        { "cmd": "git config --list", "desc": "Show all git config values" }
+      ]
+    },
+    {
+      "title": "Daily Workflow",
+      "commands": [
+        { "cmd": "git status", "desc": "Show modified, staged, untracked files" },
+        { "cmd": "git add file.txt", "desc": "Stage specific file" },
+        { "cmd": "git add .", "desc": "Stage all changes in current directory" },
+        { "cmd": "git add -p", "desc": "Interactively stage chunks of changes" },
+        { "cmd": "git commit -m \"feat: add login endpoint\"", "desc": "Commit staged changes with message" },
+        { "cmd": "git commit -am \"fix: typo in config\"", "desc": "Stage tracked files + commit in one step" },
+        { "cmd": "git diff", "desc": "Show unstaged changes" },
+        { "cmd": "git diff --staged", "desc": "Show staged changes (what will be committed)" },
+        { "cmd": "git log --oneline --graph --all", "desc": "Compact visual branch graph" },
+        { "cmd": "git log --oneline -10", "desc": "Last 10 commits, one line each" },
+        { "cmd": "git show HEAD", "desc": "Show last commit changes" },
+        { "cmd": "git show abc1234", "desc": "Show specific commit changes" }
+      ]
+    },
+    {
+      "title": "Branching",
+      "commands": [
+        { "cmd": "git branch", "desc": "List local branches" },
+        { "cmd": "git branch -a", "desc": "List local and remote branches" },
+        { "cmd": "git branch feature/login", "desc": "Create new branch (stay on current)" },
+        { "cmd": "git switch -c feature/login", "desc": "Create and switch to new branch" },
+        { "cmd": "git checkout feature/login", "desc": "Switch to existing branch" },
+        { "cmd": "git merge feature/login", "desc": "Merge branch into current branch" },
+        { "cmd": "git merge --no-ff feature/login", "desc": "Merge with explicit merge commit (no fast-forward)" },
+        { "cmd": "git rebase main", "desc": "Rebase current branch onto main" },
+        { "cmd": "git rebase -i HEAD~3", "desc": "Interactive rebase — squash/reword last 3 commits" },
+        { "cmd": "git branch -d feature/login", "desc": "Delete merged branch" },
+        { "cmd": "git branch -D feature/login", "desc": "Force delete branch (even if unmerged)" },
+        { "cmd": "git cherry-pick abc1234", "desc": "Apply specific commit onto current branch" }
+      ]
+    },
+    {
+      "title": "Remote",
+      "commands": [
+        { "cmd": "git remote -v", "desc": "List remote connections with URLs" },
+        { "cmd": "git remote add origin https://github.com/user/repo.git", "desc": "Add remote named origin" },
+        { "cmd": "git fetch", "desc": "Download remote changes without merging" },
+        { "cmd": "git fetch --prune", "desc": "Fetch + remove stale remote-tracking branches" },
+        { "cmd": "git pull", "desc": "Fetch + merge remote changes into current branch" },
+        { "cmd": "git pull --rebase", "desc": "Fetch + rebase instead of merge (cleaner history)" },
+        { "cmd": "git push origin main", "desc": "Push local commits to remote" },
+        { "cmd": "git push -u origin feature/login", "desc": "Push new branch + set upstream tracking" },
+        { "cmd": "git push origin --delete feature/login", "desc": "Delete remote branch" },
+        { "cmd": "git push --tags", "desc": "Push all local tags to remote" }
+      ]
+    },
+    {
+      "title": "Undo & Fix",
+      "commands": [
+        { "cmd": "git restore file.txt", "desc": "Discard unstaged changes in file" },
+        { "cmd": "git restore .", "desc": "Discard all unstaged changes" },
+        { "cmd": "git restore --staged file.txt", "desc": "Unstage file (keep changes)" },
+        { "cmd": "git revert HEAD", "desc": "Revert last commit with new undo commit (safe for shared branches)" },
+        { "cmd": "git reset --soft HEAD~1", "desc": "Undo last commit — keep changes staged" },
+        { "cmd": "git reset --mixed HEAD~1", "desc": "Undo last commit — keep changes unstaged" },
+        { "cmd": "git reset --hard HEAD~1", "desc": "⚠️ Undo last commit and DISCARD all changes" },
+        { "cmd": "git stash", "desc": "Stash current changes temporarily" },
+        { "cmd": "git stash pop", "desc": "Apply most recent stash and remove it" },
+        { "cmd": "git stash list", "desc": "Show all stashed changesets" },
+        { "cmd": "git stash apply stash@{2}", "desc": "Apply specific stash without removing it" },
+        { "cmd": "git stash drop stash@{0}", "desc": "Delete specific stash" }
+      ]
+    },
+    {
+      "title": "Tags & Advanced",
+      "commands": [
+        { "cmd": "git tag v1.0.0", "desc": "Create lightweight tag at current commit" },
+        { "cmd": "git tag -a v1.0.0 -m \"Release v1.0.0\"", "desc": "Create annotated tag with message" },
+        { "cmd": "git tag", "desc": "List all tags" },
+        { "cmd": "git push origin v1.0.0", "desc": "Push specific tag to remote" },
+        { "cmd": "git push origin --tags", "desc": "Push all tags to remote" },
+        { "cmd": "git blame file.txt", "desc": "Show who changed each line and when" },
+        { "cmd": "git bisect start", "desc": "Start binary search to find bug-introducing commit" },
+        { "cmd": "git shortlog -sn", "desc": "Commit count per author, sorted" },
+        { "cmd": "git clean -fd", "desc": "Remove untracked files and directories" },
+        { "cmd": "git reflog", "desc": "Show history of HEAD movements (recover lost commits)" }
+      ]
+    }
+  ]
+}

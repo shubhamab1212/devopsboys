@@ -1,0 +1,95 @@
+{
+  "slug": "docker",
+  "label": "Docker",
+  "color": "blue",
+  "description": "Essential Docker commands for containers, images, networking, volumes, and Docker Compose.",
+  "sections": [
+    {
+      "title": "Container Basics",
+      "commands": [
+        { "cmd": "docker run -d -p 8080:80 --name myapp nginx", "desc": "Run container in background, map port 8080→80" },
+        { "cmd": "docker run -it ubuntu bash", "desc": "Interactive shell inside container" },
+        { "cmd": "docker run --rm -e ENV=prod alpine sh", "desc": "Auto-remove on exit, set env variable" },
+        { "cmd": "docker ps", "desc": "List running containers" },
+        { "cmd": "docker ps -a", "desc": "List all containers (including stopped)" },
+        { "cmd": "docker stop myapp", "desc": "Gracefully stop container" },
+        { "cmd": "docker kill myapp", "desc": "Force stop container immediately" },
+        { "cmd": "docker rm myapp", "desc": "Remove stopped container" },
+        { "cmd": "docker rm -f myapp", "desc": "Force remove running container" },
+        { "cmd": "docker logs -f myapp", "desc": "Follow container logs in real time" },
+        { "cmd": "docker exec -it myapp bash", "desc": "Open shell inside running container" },
+        { "cmd": "docker inspect myapp", "desc": "Detailed JSON info about container" },
+        { "cmd": "docker stats", "desc": "Live CPU/memory/network usage" },
+        { "cmd": "docker cp myapp:/app/file.txt .", "desc": "Copy file from container to host" }
+      ]
+    },
+    {
+      "title": "Images",
+      "commands": [
+        { "cmd": "docker images", "desc": "List all local images" },
+        { "cmd": "docker pull nginx:1.25-alpine", "desc": "Pull specific image tag" },
+        { "cmd": "docker push myrepo/myapp:v1.0", "desc": "Push image to registry" },
+        { "cmd": "docker build -t myapp:v1.0 .", "desc": "Build image from Dockerfile in current dir" },
+        { "cmd": "docker build --no-cache -t myapp:latest .", "desc": "Build without using cache layers" },
+        { "cmd": "docker tag myapp:latest myrepo/myapp:v1.0", "desc": "Tag image for registry push" },
+        { "cmd": "docker rmi myapp:latest", "desc": "Remove local image" },
+        { "cmd": "docker image prune -a", "desc": "Remove all unused images" },
+        { "cmd": "docker history myapp:latest", "desc": "Show image layer history + sizes" },
+        { "cmd": "docker save myapp:latest | gzip > myapp.tar.gz", "desc": "Export image to compressed file" },
+        { "cmd": "docker load < myapp.tar.gz", "desc": "Import image from file" }
+      ]
+    },
+    {
+      "title": "Volumes",
+      "commands": [
+        { "cmd": "docker volume ls", "desc": "List all volumes" },
+        { "cmd": "docker volume create mydata", "desc": "Create named volume" },
+        { "cmd": "docker volume inspect mydata", "desc": "Volume details and mount path" },
+        { "cmd": "docker volume rm mydata", "desc": "Remove volume" },
+        { "cmd": "docker volume prune", "desc": "Remove all unused volumes" },
+        { "cmd": "docker run -v mydata:/app/data nginx", "desc": "Mount named volume to container" },
+        { "cmd": "docker run -v $(pwd):/app nginx", "desc": "Bind mount current directory" },
+        { "cmd": "docker run -v $(pwd):/app:ro nginx", "desc": "Bind mount as read-only" }
+      ]
+    },
+    {
+      "title": "Networking",
+      "commands": [
+        { "cmd": "docker network ls", "desc": "List all networks" },
+        { "cmd": "docker network create mynet", "desc": "Create custom bridge network" },
+        { "cmd": "docker network inspect mynet", "desc": "Inspect network and connected containers" },
+        { "cmd": "docker run --network mynet --name api myapp", "desc": "Connect container to network" },
+        { "cmd": "docker network connect mynet myapp", "desc": "Connect running container to network" },
+        { "cmd": "docker network disconnect mynet myapp", "desc": "Disconnect container from network" },
+        { "cmd": "docker network rm mynet", "desc": "Remove network" }
+      ]
+    },
+    {
+      "title": "Docker Compose",
+      "commands": [
+        { "cmd": "docker compose up -d", "desc": "Start all services in background" },
+        { "cmd": "docker compose up -d --build", "desc": "Rebuild images then start" },
+        { "cmd": "docker compose down", "desc": "Stop and remove containers" },
+        { "cmd": "docker compose down -v", "desc": "Stop + remove containers and volumes" },
+        { "cmd": "docker compose ps", "desc": "List running services" },
+        { "cmd": "docker compose logs -f", "desc": "Follow logs from all services" },
+        { "cmd": "docker compose logs -f web", "desc": "Follow logs from specific service" },
+        { "cmd": "docker compose exec web bash", "desc": "Shell into service container" },
+        { "cmd": "docker compose restart web", "desc": "Restart specific service" },
+        { "cmd": "docker compose up -d --scale web=3", "desc": "Scale service to 3 replicas" },
+        { "cmd": "docker compose pull", "desc": "Pull latest images for all services" },
+        { "cmd": "docker compose config", "desc": "Validate and view merged compose config" }
+      ]
+    },
+    {
+      "title": "System & Cleanup",
+      "commands": [
+        { "cmd": "docker system df", "desc": "Show disk usage by images, containers, volumes" },
+        { "cmd": "docker system prune", "desc": "Remove all stopped containers, unused networks/images" },
+        { "cmd": "docker system prune -a --volumes", "desc": "Nuclear cleanup — remove everything unused" },
+        { "cmd": "docker container prune", "desc": "Remove all stopped containers" },
+        { "cmd": "docker image prune", "desc": "Remove dangling (untagged) images" }
+      ]
+    }
+  ]
+}

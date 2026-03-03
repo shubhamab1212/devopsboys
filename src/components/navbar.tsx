@@ -14,8 +14,9 @@ import { posts } from "@/lib/content"
 const navLinks = [
   { href: "/", label: "Home" },
   { href: "/blog", label: "Blog" },
+  { href: "/cheatsheets", label: "Cheatsheets" },
   { href: "/interview-prep", label: "Interview Prep" },
-  { href: "/tags", label: "Tags" },
+  { href: "/roadmap", label: "Roadmap" },
   { href: "/about", label: "About" },
 ]
 

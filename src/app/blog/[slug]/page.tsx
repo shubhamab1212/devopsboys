@@ -9,6 +9,7 @@ import { ShareButtons } from "@/components/share-buttons"
 import { BackToTop } from "@/components/back-to-top"
 import { NewsletterCTA } from "@/components/newsletter-cta"
 import { GiscusComments } from "@/components/giscus-comments"
+import { ViewCounter } from "@/components/view-counter"
 import { formatDate, getReadingTime } from "@/lib/utils"
 import { Calendar, Clock, ArrowLeft, User } from "lucide-react"
 import type { Metadata } from "next"
@@ -178,6 +179,7 @@ export default async function PostPage({ params }: PageProps) {
                   <Clock className="h-3.5 w-3.5" />
                   {readingTime} min read
                 </span>
+                <ViewCounter slug={post.slugAsParams} />
               </div>
               <ShareButtons title={post.title} url={postUrl} />
             </div>

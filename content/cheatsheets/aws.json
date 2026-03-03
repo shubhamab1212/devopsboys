@@ -1,0 +1,101 @@
+{
+  "slug": "aws",
+  "label": "AWS CLI",
+  "color": "orange",
+  "description": "AWS CLI commands for IAM, EC2, S3, EKS, Lambda, and CloudWatch Logs.",
+  "sections": [
+    {
+      "title": "Identity & Auth",
+      "commands": [
+        { "cmd": "aws sts get-caller-identity", "desc": "Show current account, user ARN" },
+        { "cmd": "aws configure", "desc": "Set up AWS credentials interactively" },
+        { "cmd": "aws configure list", "desc": "Show active credentials and region" },
+        { "cmd": "aws configure list-profiles", "desc": "List all configured profiles" },
+        { "cmd": "aws --profile staging s3 ls", "desc": "Run command with specific profile" },
+        { "cmd": "export AWS_PROFILE=staging", "desc": "Set default profile for session" }
+      ]
+    },
+    {
+      "title": "IAM",
+      "commands": [
+        { "cmd": "aws iam list-users", "desc": "List all IAM users" },
+        { "cmd": "aws iam create-user --user-name devuser", "desc": "Create IAM user" },
+        { "cmd": "aws iam delete-user --user-name devuser", "desc": "Delete IAM user" },
+        { "cmd": "aws iam list-roles", "desc": "List all IAM roles" },
+        { "cmd": "aws iam get-role --role-name MyRole", "desc": "Get role details and trust policy" },
+        { "cmd": "aws iam list-attached-role-policies --role-name MyRole", "desc": "List policies attached to role" },
+        { "cmd": "aws iam list-policies --scope Local", "desc": "List customer-managed policies" },
+        { "cmd": "aws iam create-access-key --user-name devuser", "desc": "Create access key for user" },
+        { "cmd": "aws iam list-access-keys --user-name devuser", "desc": "List user's access keys" }
+      ]
+    },
+    {
+      "title": "EC2",
+      "commands": [
+        { "cmd": "aws ec2 describe-instances --output table", "desc": "List all EC2 instances as table" },
+        { "cmd": "aws ec2 describe-instances --filters Name=instance-state-name,Values=running", "desc": "Filter running instances only" },
+        { "cmd": "aws ec2 describe-instances --query 'Reservations[*].Instances[*].[InstanceId,State.Name,PublicIpAddress]' --output table", "desc": "Show ID, state, public IP as table" },
+        { "cmd": "aws ec2 start-instances --instance-ids i-1234567890abcdef0", "desc": "Start stopped instance" },
+        { "cmd": "aws ec2 stop-instances --instance-ids i-1234567890abcdef0", "desc": "Stop running instance" },
+        { "cmd": "aws ec2 reboot-instances --instance-ids i-1234567890abcdef0", "desc": "Reboot instance" },
+        { "cmd": "aws ec2 terminate-instances --instance-ids i-1234567890abcdef0", "desc": "Terminate (delete) instance" },
+        { "cmd": "aws ec2 describe-security-groups", "desc": "List all security groups" },
+        { "cmd": "aws ec2 describe-vpcs", "desc": "List all VPCs" },
+        { "cmd": "aws ec2 describe-subnets --filters Name=vpc-id,Values=vpc-12345", "desc": "List subnets in a VPC" },
+        { "cmd": "aws ec2 describe-key-pairs", "desc": "List EC2 key pairs" }
+      ]
+    },
+    {
+      "title": "S3",
+      "commands": [
+        { "cmd": "aws s3 ls", "desc": "List all S3 buckets" },
+        { "cmd": "aws s3 ls s3://my-bucket/", "desc": "List bucket contents" },
+        { "cmd": "aws s3 ls s3://my-bucket/ --recursive --human-readable", "desc": "Recursive listing with human sizes" },
+        { "cmd": "aws s3 cp file.txt s3://my-bucket/folder/", "desc": "Upload file to bucket" },
+        { "cmd": "aws s3 cp s3://my-bucket/file.txt .", "desc": "Download file from bucket" },
+        { "cmd": "aws s3 sync ./dist s3://my-bucket/", "desc": "Sync local directory to bucket" },
+        { "cmd": "aws s3 sync s3://my-bucket/ ./backup/", "desc": "Sync bucket to local directory" },
+        { "cmd": "aws s3 rm s3://my-bucket/file.txt", "desc": "Delete single object" },
+        { "cmd": "aws s3 rm s3://my-bucket/folder/ --recursive", "desc": "Delete all objects in prefix" },
+        { "cmd": "aws s3 mb s3://new-bucket-name", "desc": "Create new bucket" },
+        { "cmd": "aws s3 rb s3://bucket-name --force", "desc": "Delete bucket and all its contents" },
+        { "cmd": "aws s3 presign s3://my-bucket/file.txt --expires-in 3600", "desc": "Generate pre-signed URL valid for 1 hour" }
+      ]
+    },
+    {
+      "title": "EKS",
+      "commands": [
+        { "cmd": "aws eks list-clusters", "desc": "List all EKS clusters" },
+        { "cmd": "aws eks describe-cluster --name my-cluster", "desc": "Cluster endpoint, version, status" },
+        { "cmd": "aws eks update-kubeconfig --name my-cluster --region us-east-1", "desc": "Update kubeconfig to access cluster" },
+        { "cmd": "aws eks list-nodegroups --cluster-name my-cluster", "desc": "List node groups in cluster" },
+        { "cmd": "aws eks describe-nodegroup --cluster-name my-cluster --nodegroup-name ng-1", "desc": "Node group details, scaling config" },
+        { "cmd": "aws eks update-nodegroup-config --cluster-name my-cluster --nodegroup-name ng-1 --scaling-config minSize=2,maxSize=5,desiredSize=3", "desc": "Update node group scaling" },
+        { "cmd": "aws eks list-addons --cluster-name my-cluster", "desc": "List installed EKS add-ons" }
+      ]
+    },
+    {
+      "title": "Lambda",
+      "commands": [
+        { "cmd": "aws lambda list-functions", "desc": "List all Lambda functions" },
+        { "cmd": "aws lambda invoke --function-name myFunc output.json", "desc": "Invoke function synchronously" },
+        { "cmd": "aws lambda invoke --function-name myFunc --payload '{\"key\":\"val\"}' out.json", "desc": "Invoke with JSON payload" },
+        { "cmd": "aws lambda get-function --function-name myFunc", "desc": "Function config, code URL, runtime" },
+        { "cmd": "aws lambda update-function-code --function-name myFunc --zip-file fileb://code.zip", "desc": "Update function code from zip" },
+        { "cmd": "aws lambda update-function-configuration --function-name myFunc --timeout 30", "desc": "Update function settings (timeout, memory)" },
+        { "cmd": "aws lambda list-event-source-mappings --function-name myFunc", "desc": "List triggers (SQS, DynamoDB, etc.)" }
+      ]
+    },
+    {
+      "title": "CloudWatch Logs",
+      "commands": [
+        { "cmd": "aws logs describe-log-groups", "desc": "List all log groups" },
+        { "cmd": "aws logs describe-log-streams --log-group-name /aws/lambda/myFunc", "desc": "List log streams in a group" },
+        { "cmd": "aws logs tail /aws/lambda/myFunc --follow", "desc": "Follow logs in real time (like tail -f)" },
+        { "cmd": "aws logs tail /aws/lambda/myFunc --since 1h", "desc": "Logs from last 1 hour" },
+        { "cmd": "aws logs filter-log-events --log-group-name /aws/lambda/myFunc --filter-pattern ERROR", "desc": "Search logs for pattern" },
+        { "cmd": "aws logs get-log-events --log-group-name /aws/ecs/myapp --log-stream-name stream-name", "desc": "Fetch specific log stream events" }
+      ]
+    }
+  ]
+}
