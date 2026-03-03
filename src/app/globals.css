@@ -317,7 +317,6 @@
 
 /* Code blocks from rehype-pretty-code */
 .prose pre {
-  background: #0d1117 !important;
   border: 1px solid var(--border);
   border-radius: 0.5rem;
   padding: 1.25rem;
@@ -328,9 +327,16 @@
   line-height: 1.7;
 }
 
+/* Dual-theme: hide the inactive theme variant */
+.dark pre[data-theme='light'],
+.dark code[data-theme='light'] { display: none; }
+html:not(.dark) pre[data-theme='dark'],
+html:not(.dark) code[data-theme='dark'] { display: none; }
+
 .prose [data-rehype-pretty-code-figure] { position: relative; margin: 1.25rem 0; }
 .prose [data-rehype-pretty-code-figure] pre { margin: 0; }
 
+/* Code title bar — adapts to theme */
 .prose [data-rehype-pretty-code-title] {
   background: #161b22;
   border: 1px solid var(--border);
@@ -340,6 +346,10 @@
   font-size: 0.8rem;
   color: #8b949e;
   font-family: monospace;
+}
+html:not(.dark) .prose [data-rehype-pretty-code-title] {
+  background: #f3f4f6;
+  color: #57606a;
 }
 
 .prose table {
