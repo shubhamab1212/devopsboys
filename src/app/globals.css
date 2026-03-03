@@ -293,11 +293,11 @@
   content: '';
   position: absolute;
   left: 0;
-  top: 0.15em;
-  bottom: 0.15em;
+  top: 0.1em;
+  bottom: 0.1em;
   width: 4px;
   border-radius: 4px;
-  background: linear-gradient(to bottom, oklch(0.65 0.2 250), oklch(0.7 0.22 290));
+  background: linear-gradient(to bottom, oklch(0.55 0.22 250), oklch(0.60 0.24 290));
 }
 .prose h2 a { text-decoration: none; color: inherit; }
 .prose h2 a:hover { color: oklch(0.65 0.2 250); }
@@ -306,9 +306,9 @@
   font-size: 1.25rem;
   margin-top: 2rem;
   margin-bottom: 0.6rem;
-  color: oklch(0.75 0.08 250);
+  color: oklch(0.30 0.14 250);   /* dark navy-blue — readable on white */
 }
-.dark .prose h3 { color: oklch(0.78 0.1 250); }
+.dark .prose h3 { color: oklch(0.75 0.14 250); }  /* bright blue on dark bg */
 
 .prose h3 a { text-decoration: none; color: inherit; }
 

@@ -1,5 +1,3 @@
-"use client"
-
 import * as runtime from "react/jsx-runtime"
 import { CopyButton } from "./copy-button"
 import React from "react"
