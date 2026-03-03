@@ -442,6 +442,7 @@
 /* Inner pre — no extra margin/border since wrapper handles it */
 .prose .code-block-wrap pre {
   background: #1e2030 !important;
+  color: #abb2bf !important;   /* one-dark-pro foreground — fixes unlanguaged blocks in light mode */
   border: none !important;
   border-radius: 0 !important;
   margin: 0 !important;
@@ -470,6 +471,7 @@
 /* Fallback pre (not inside .code-block-wrap) */
 .prose pre:not(.code-block-wrap pre) {
   background: #1e2030 !important;
+  color: #abb2bf !important;   /* ensure plain text is readable in all modes */
   border: 1px solid #30363d;
   border-radius: 0.75rem;
   padding: 1.25rem 1.5rem;
