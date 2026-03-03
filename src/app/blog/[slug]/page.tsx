@@ -8,6 +8,7 @@ import { ReadingProgress } from "@/components/reading-progress"
 import { ShareButtons } from "@/components/share-buttons"
 import { BackToTop } from "@/components/back-to-top"
 import { NewsletterCTA } from "@/components/newsletter-cta"
+import { GiscusComments } from "@/components/giscus-comments"
 import { formatDate, getReadingTime } from "@/lib/utils"
 import { Calendar, Clock, ArrowLeft, User } from "lucide-react"
 import type { Metadata } from "next"
@@ -86,16 +87,33 @@ export default async function PostPage({ params }: PageProps) {
     "@type": "BlogPosting",
     headline: post.title,
     description: post.description,
-    author: { "@type": "Person", name: post.author },
+    author: {
+      "@type": "Person",
+      name: post.author,
+      url: `${BASE_URL}/about`,
+    },
     datePublished: post.date,
     dateModified: post.date,
     url: postUrl,
+    mainEntityOfPage: { "@type": "WebPage", "@id": postUrl },
     publisher: {
       "@type": "Organization",
       name: "DevOpsBoys",
       url: BASE_URL,
+      logo: { "@type": "ImageObject", url: `${BASE_URL}/favicon.ico` },
     },
     keywords: post.tags.join(", "),
+    image: `${BASE_URL}/blog/${post.slugAsParams}/opengraph-image`,
+  }
+
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: BASE_URL },
+      { "@type": "ListItem", position: 2, name: "Blog", item: `${BASE_URL}/blog` },
+      { "@type": "ListItem", position: 3, name: post.title, item: postUrl },
+    ],
   }
 
   return (
@@ -104,6 +122,11 @@ export default async function PostPage({ params }: PageProps) {
         id="json-ld"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <Script
+        id="breadcrumb-ld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
 
       {/* Reading progress bar */}
@@ -197,6 +220,9 @@ export default async function PostPage({ params }: PageProps) {
                 </div>
               </div>
             )}
+
+            {/* Comments */}
+            <GiscusComments />
           </article>
 
           {/* TOC Sidebar */}

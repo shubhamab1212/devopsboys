@@ -74,11 +74,17 @@ export function Footer() {
           <div className="space-y-3">
             <h3 className="font-semibold text-sm">Topics</h3>
             <nav className="flex flex-col gap-2">
-              {["DevOps", "Docker", "Kubernetes", "AWS", "CI/CD", "AI & ML"].map((topic) => (
-                <Link key={topic}
-                  href={`/tags/${topic.toLowerCase().replace(/\s+/g, "-").replace(/&\s*/g, "")}`}
+              {[
+                { label: "DevOps",     href: "/tags/devops" },
+                { label: "Docker",     href: "/tags/docker" },
+                { label: "Kubernetes", href: "/tags/kubernetes" },
+                { label: "AWS",        href: "/tags/aws" },
+                { label: "CI/CD",      href: "/tags/cicd" },
+                { label: "AI & ML",    href: "/tags/ai" },
+              ].map(({ label, href }) => (
+                <Link key={href} href={href}
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors w-fit">
-                  {topic}
+                  {label}
                 </Link>
               ))}
             </nav>
