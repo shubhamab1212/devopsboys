@@ -240,6 +240,21 @@
   100% { transform: translateX(380px);  opacity: 0; }
 }
 
+/* ── Cartoon cat animations ─────────────────────── */
+@keyframes cat-tail-sway {
+  0%, 100% { transform: rotate(0deg);   }
+  50%       { transform: rotate(22deg);  }
+}
+@keyframes cat-breathe {
+  0%, 100% { transform: translateY(0px);  }
+  50%       { transform: translateY(-3px); }
+}
+@keyframes cat-zzz {
+  0%   { opacity: 0; transform: translateY(0px) scale(0.7);  }
+  20%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-30px) scale(1.3); }
+}
+
 /* Topic pill per-color glow on hover */
 .topic-glow-blue:hover    { box-shadow: 0 0 22px oklch(0.65 0.2 250 / 0.45),  0 4px 12px oklch(0 0 0 / 0.12); }
 .topic-glow-sky:hover     { box-shadow: 0 0 22px oklch(0.70 0.17 220 / 0.45), 0 4px 12px oklch(0 0 0 / 0.12); }

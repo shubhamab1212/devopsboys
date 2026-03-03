@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { getReadingTime, formatDate } from "@/lib/utils"
 import { DevScrollProgress } from "@/components/dev-scroll-progress"
 import { HeroCyclingWord } from "@/components/hero-cycling-word"
+import { CartoonCat } from "@/components/cartoon-cat"
 import {
   ArrowRight, Terminal, Cloud, Bot, GitBranch, Server, Zap, BookOpen, Map, FileCode2, Wrench,
 } from "lucide-react"
@@ -55,6 +56,9 @@ export default function HomePage() {
 
       {/* Funny terminal scroll progress */}
       <DevScrollProgress />
+
+      {/* Cartoon cat */}
+      <CartoonCat />
 
       {/* ── HERO ─────────────────────────────────────────── */}
       <section className="relative min-h-[90vh] flex items-center overflow-hidden">
@@ -123,38 +127,6 @@ export default function HomePage() {
                   {label}
                 </span>
               ))}
-            </div>
-
-            {/* Terminal card */}
-            <div className="animate-fade-up delay-400 opacity-0 w-full max-w-md rounded-2xl border border-border/70 bg-card/60 backdrop-blur-md overflow-hidden shadow-2xl shadow-black/25 mb-12">
-              {/* Terminal title bar */}
-              <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border/50 bg-muted/40">
-                <span className="w-3 h-3 rounded-full bg-red-400/90" />
-                <span className="w-3 h-3 rounded-full bg-yellow-400/90" />
-                <span className="w-3 h-3 rounded-full bg-green-400/90" />
-                <span className="ml-3 font-mono text-[11px] text-muted-foreground">devops@terminal ~ zsh</span>
-              </div>
-              {/* Terminal body */}
-              <div className="p-4 font-mono text-[11px] md:text-xs text-left space-y-1">
-                <p>
-                  <span className="text-green-400">❯</span>{" "}
-                  <span className="text-blue-400">kubectl</span>{" "}
-                  <span className="text-foreground/80">get pods -n production</span>
-                </p>
-                <p className="text-muted-foreground/70 pl-3">NAME&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;READY&nbsp;&nbsp;STATUS&nbsp;&nbsp;&nbsp;AGE</p>
-                <p className="text-green-400 pl-3">api-deployment&nbsp;&nbsp;&nbsp;3/3&nbsp;&nbsp;&nbsp;Running&nbsp;&nbsp;2d4h</p>
-                <p className="text-green-400 pl-3">worker-pod&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1/1&nbsp;&nbsp;&nbsp;Running&nbsp;&nbsp;8h</p>
-                <p className="text-green-400 pl-3">redis-cache&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1/1&nbsp;&nbsp;&nbsp;Running&nbsp;&nbsp;5d</p>
-                <p className="mt-2">
-                  <span className="text-green-400">❯</span>{" "}
-                  <span className="text-blue-400">docker</span>{" "}
-                  <span className="text-foreground/80">build . -t myapp:latest</span>
-                </p>
-                <p className="text-muted-foreground/70 pl-3">
-                  Successfully built <span className="text-emerald-400">abc123f9</span>{" "}
-                  <span className="animate-pulse text-green-400">▋</span>
-                </p>
-              </div>
             </div>
 
             {/* Stats — frosted glass cards */}
