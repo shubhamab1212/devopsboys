@@ -113,9 +113,6 @@ export default function AboutPage() {
           <Button asChild size="lg" className="gap-2">
             <Link href="/blog">Read Articles</Link>
           </Button>
-          <Button asChild variant="outline" size="lg">
-            <Link href="mailto:hello@devopsboys.com">Get In Touch</Link>
-          </Button>
         </div>
       </div>
     </div>
