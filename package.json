@@ -10,6 +10,7 @@
     "velite": "velite build"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
     "@mdx-js/loader": "^3.1.1",
     "@mdx-js/react": "^3.1.1",
     "@next/mdx": "^16.1.6",

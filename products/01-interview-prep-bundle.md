@@ -223,7 +223,7 @@ Monitoring tells you when something is wrong (alerting on known failure modes). 
 
 **Q: Design a CI/CD pipeline for a microservices app on Kubernetes.**
 Answer framework:
-1. Developer pushes to feature branch
+1. Developer pushes to feature branch 
 2. GitHub Actions: lint + unit tests run on PR
 3. Merge to main: build Docker image, tag with git SHA, push to registry
 4. Staging deploy: ArgoCD detects image change, deploys to staging namespace

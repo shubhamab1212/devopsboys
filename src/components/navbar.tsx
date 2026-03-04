@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { ThemeToggle } from "./theme-toggle"
 import { Button } from "./ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet"
-import { Menu, Terminal, ShoppingBag } from "lucide-react"
+import { Menu, Terminal, ShoppingBag, Gamepad2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
 import { SearchDialog } from "./search"
@@ -134,6 +134,24 @@ export function Navbar() {
             )
           })}
 
+          {/* Games — special pill */}
+          <Link
+            href="/games"
+            className={cn(
+              "relative ml-1 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 border",
+              "hover:-translate-y-0.5 hover:scale-105",
+              pathname.startsWith("/games")
+                ? "border-red-500/60 bg-red-500/10 text-red-400 shadow-sm shadow-red-500/20"
+                : "border-border hover:border-red-500/50 hover:bg-red-500/10 text-muted-foreground hover:text-red-400 hover:shadow-md hover:shadow-red-500/20"
+            )}
+          >
+            <Gamepad2 className="h-3.5 w-3.5" />
+            Games
+            <span className="px-1.5 py-0.5 rounded-full bg-red-500/20 border border-red-500/30 text-red-400 text-[10px] font-bold leading-none">
+              AI
+            </span>
+          </Link>
+
           {/* Shop — special pill */}
           <Link
             href="/shop"
@@ -176,7 +194,7 @@ export function Navbar() {
                 </span>
               </div>
               <nav className="flex flex-col gap-1">
-                {[...navLinks, { href: "/shop", label: "Shop", activeText: "text-violet-400", activeBg: "bg-violet-500/10", hoverText: "hover:text-violet-400", hoverBg: "hover:bg-violet-500/10", underline: "bg-violet-400", glow: "shadow-violet-500/20" }].map((link) => {
+                {[...navLinks, { href: "/games", label: "Games", activeText: "text-red-400", activeBg: "bg-red-500/10", hoverText: "hover:text-red-400", hoverBg: "hover:bg-red-500/10", underline: "bg-red-400", glow: "shadow-red-500/20" }, { href: "/shop", label: "Shop", activeText: "text-violet-400", activeBg: "bg-violet-500/10", hoverText: "hover:text-violet-400", hoverBg: "hover:bg-violet-500/10", underline: "bg-violet-400", glow: "shadow-violet-500/20" }].map((link) => {
                   const isActive = pathname === link.href
                   return (
                     <Link
@@ -193,6 +211,9 @@ export function Navbar() {
                       )}
                     >
                       {link.label}
+                      {link.href === "/games" && (
+                        <span className="ml-2 px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 text-[10px] font-bold">AI</span>
+                      )}
                       {link.href === "/shop" && (
                         <span className="ml-2 px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">NEW</span>
                       )}
