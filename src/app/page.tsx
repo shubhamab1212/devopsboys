@@ -228,7 +228,7 @@ export default function HomePage() {
             </div>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {recentPosts.map((post) => (
+              {recentPosts.map((post, idx) => (
                 <PostCard
                   key={post.slug}
                   title={post.title}
@@ -238,6 +238,7 @@ export default function HomePage() {
                   slug={post.slugAsParams}
                   author={post.author}
                   readingTime={getReadingTime(post.body)}
+                  cardIndex={idx}
                 />
               ))}
             </div>
