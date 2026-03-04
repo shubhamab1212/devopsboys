@@ -12,12 +12,66 @@ import { SearchDialog } from "./search"
 import { posts } from "@/lib/content"
 
 const navLinks = [
-  { href: "/",              label: "Home",          color: "from-blue-400 to-blue-500" },
-  { href: "/blog",          label: "Blog",          color: "from-violet-400 to-purple-500" },
-  { href: "/cheatsheets",   label: "Cheatsheets",   color: "from-cyan-400 to-blue-400" },
-  { href: "/interview-prep",label: "Interview Prep",color: "from-purple-400 to-pink-400" },
-  { href: "/roadmap",       label: "Roadmap",       color: "from-emerald-400 to-teal-400" },
-  { href: "/about",         label: "About",         color: "from-orange-400 to-amber-400" },
+  {
+    href: "/",
+    label: "Home",
+    activeText: "text-blue-400",
+    activeBg: "bg-blue-500/10",
+    hoverText: "hover:text-blue-400",
+    hoverBg: "hover:bg-blue-500/10",
+    underline: "bg-blue-400",
+    glow: "shadow-blue-500/30",
+  },
+  {
+    href: "/blog",
+    label: "Blog",
+    activeText: "text-violet-400",
+    activeBg: "bg-violet-500/10",
+    hoverText: "hover:text-violet-400",
+    hoverBg: "hover:bg-violet-500/10",
+    underline: "bg-violet-400",
+    glow: "shadow-violet-500/30",
+  },
+  {
+    href: "/cheatsheets",
+    label: "Cheatsheets",
+    activeText: "text-cyan-400",
+    activeBg: "bg-cyan-500/10",
+    hoverText: "hover:text-cyan-400",
+    hoverBg: "hover:bg-cyan-500/10",
+    underline: "bg-cyan-400",
+    glow: "shadow-cyan-500/30",
+  },
+  {
+    href: "/interview-prep",
+    label: "Interview Prep",
+    activeText: "text-pink-400",
+    activeBg: "bg-pink-500/10",
+    hoverText: "hover:text-pink-400",
+    hoverBg: "hover:bg-pink-500/10",
+    underline: "bg-pink-400",
+    glow: "shadow-pink-500/30",
+  },
+  {
+    href: "/roadmap",
+    label: "Roadmap",
+    activeText: "text-emerald-400",
+    activeBg: "bg-emerald-500/10",
+    hoverText: "hover:text-emerald-400",
+    hoverBg: "hover:bg-emerald-500/10",
+    underline: "bg-emerald-400",
+    glow: "shadow-emerald-500/30",
+  },
+  {
+    href: "/about",
+    label: "About",
+    activeText: "text-orange-400",
+    activeBg: "bg-orange-500/10",
+    hoverText: "hover:text-orange-400",
+    hoverBg: "hover:bg-orange-500/10",
+    underline: "bg-orange-400",
+    glow: "shadow-orange-500/30",
+  },
 ]
 
 const searchPosts = posts
@@ -43,7 +97,7 @@ export function Navbar() {
 
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5 font-bold text-xl shrink-0 group">
-          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 text-white shadow shadow-violet-500/30 group-hover:shadow-violet-500/60 group-hover:scale-105 transition-all duration-200">
+          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 text-white shadow shadow-violet-500/30 group-hover:shadow-violet-500/60 group-hover:scale-110 transition-all duration-200">
             <Terminal className="h-4 w-4" />
           </div>
           <span className="hidden sm:block">
@@ -61,25 +115,20 @@ export function Navbar() {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "relative px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 group/link",
+                  "relative px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200",
+                  "hover:-translate-y-0.5 hover:scale-105 hover:shadow-md",
+                  link.hoverBg,
+                  link.hoverText,
+                  link.glow,
                   isActive
-                    ? "text-foreground bg-accent/60"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent/40"
+                    ? `${link.activeBg} ${link.activeText} font-semibold`
+                    : "text-muted-foreground"
                 )}
               >
-                {/* Gradient text on active */}
-                <span className={cn(
-                  "relative z-10 transition-all duration-200",
-                  isActive
-                    ? `bg-gradient-to-r ${link.color} bg-clip-text text-transparent font-semibold`
-                    : `group-hover/link:bg-gradient-to-r group-hover/link:${link.color} group-hover/link:bg-clip-text group-hover/link:text-transparent`
-                )}>
-                  {link.label}
-                </span>
-
-                {/* Active underline glow */}
+                {link.label}
+                {/* Active underline */}
                 {isActive && (
-                  <span className={`absolute bottom-0.5 left-3 right-3 h-0.5 rounded-full bg-gradient-to-r ${link.color} opacity-80`} />
+                  <span className={`absolute bottom-0.5 left-3 right-3 h-0.5 rounded-full ${link.underline} opacity-80`} />
                 )}
               </Link>
             )
@@ -90,9 +139,10 @@ export function Navbar() {
             href="/shop"
             className={cn(
               "relative ml-1 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 border",
+              "hover:-translate-y-0.5 hover:scale-105",
               pathname === "/shop"
                 ? "border-violet-500/60 bg-violet-500/10 text-violet-400 shadow-sm shadow-violet-500/20"
-                : "border-border hover:border-violet-500/40 hover:bg-violet-500/5 text-muted-foreground hover:text-violet-400"
+                : "border-border hover:border-violet-500/50 hover:bg-violet-500/10 text-muted-foreground hover:text-violet-400 hover:shadow-md hover:shadow-violet-500/20"
             )}
           >
             <ShoppingBag className="h-3.5 w-3.5" />
@@ -126,7 +176,7 @@ export function Navbar() {
                 </span>
               </div>
               <nav className="flex flex-col gap-1">
-                {[...navLinks, { href: "/shop", label: "Shop", color: "from-violet-400 to-blue-400" }].map((link) => {
+                {[...navLinks, { href: "/shop", label: "Shop", activeText: "text-violet-400", activeBg: "bg-violet-500/10", hoverText: "hover:text-violet-400", hoverBg: "hover:bg-violet-500/10", underline: "bg-violet-400", glow: "shadow-violet-500/20" }].map((link) => {
                   const isActive = pathname === link.href
                   return (
                     <Link
@@ -134,18 +184,18 @@ export function Navbar() {
                       href={link.href}
                       onClick={() => setOpen(false)}
                       className={cn(
-                        "px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
+                        "px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-150",
+                        link.hoverBg,
+                        link.hoverText,
                         isActive
-                          ? "bg-accent text-accent-foreground"
-                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                          ? `${link.activeBg} ${link.activeText} font-semibold`
+                          : "text-muted-foreground"
                       )}
                     >
-                      <span className={isActive ? `bg-gradient-to-r ${link.color} bg-clip-text text-transparent font-semibold` : ""}>
-                        {link.label}
-                        {link.href === "/shop" && (
-                          <span className="ml-2 px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">NEW</span>
-                        )}
-                      </span>
+                      {link.label}
+                      {link.href === "/shop" && (
+                        <span className="ml-2 px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">NEW</span>
+                      )}
                     </Link>
                   )
                 })}
