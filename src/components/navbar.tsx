@@ -17,6 +17,7 @@ const navLinks = [
   { href: "/cheatsheets", label: "Cheatsheets" },
   { href: "/interview-prep", label: "Interview Prep" },
   { href: "/roadmap", label: "Roadmap" },
+  { href: "/shop", label: "Shop" },
   { href: "/about", label: "About" },
 ]
 
