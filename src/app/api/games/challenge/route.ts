@@ -65,7 +65,8 @@ Respond with ONLY valid JSON in this exact format:
     const challenge = JSON.parse(jsonMatch[0])
     return NextResponse.json({ challenge, type, difficulty })
   } catch (err) {
-    console.error("Challenge generation error:", err)
-    return NextResponse.json({ error: "Failed to generate challenge" }, { status: 500 })
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error("Challenge generation error:", msg)
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
