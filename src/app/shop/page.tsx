@@ -147,13 +147,6 @@ export default function ShopPage() {
                 key={product.id}
                 className={`group relative rounded-2xl border bg-card overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-2xl ${product.border}`}
               >
-                {/* Coming soon overlay badge */}
-                <div className="absolute top-4 right-4 z-10">
-                  <span className="px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-xs font-semibold">
-                    Coming Soon
-                  </span>
-                </div>
-
                 <div className={`absolute inset-0 bg-gradient-to-br ${product.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none`} />
 
                 <div className="relative p-6 md:p-8">
@@ -165,7 +158,12 @@ export default function ShopPage() {
                           <Icon className={`h-5 w-5 ${product.iconColor}`} />
                         </div>
                         <div>
-                          <h2 className="text-xl font-bold mb-1">{product.title}</h2>
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <h2 className="text-xl font-bold">{product.title}</h2>
+                            <span className="px-2.5 py-0.5 rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-xs font-semibold">
+                              Coming Soon
+                            </span>
+                          </div>
                           <p className={`text-sm font-medium ${product.accentColor}`}>
                             {product.subtitle}
                           </p>
