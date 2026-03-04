@@ -188,13 +188,8 @@ export default function ShopPage() {
                       <p className="text-xs text-muted-foreground">{product.format}</p>
                     </div>
 
-                    {/* Right: Price + Interest button */}
+                    {/* Right: Interest button */}
                     <div className="flex flex-col items-center md:items-end gap-3 md:min-w-[170px]">
-                      <div className="text-center md:text-right">
-                        <div className="text-3xl font-extrabold">{product.price}</div>
-                        <p className="text-xs text-muted-foreground mt-0.5">at launch</p>
-                      </div>
-
                       <InterestButton product={product.id} />
                     </div>
                   </div>
