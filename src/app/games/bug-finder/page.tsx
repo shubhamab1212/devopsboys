@@ -4,7 +4,7 @@ import { useState, useCallback } from "react"
 import { Bug, Zap, RefreshCw, ChevronRight, Lightbulb, CheckCircle2, XCircle, Trophy, Flame } from "lucide-react"
 
 type Difficulty = "easy" | "medium" | "hard"
-type ChallengeType = "dockerfile" | "kubernetes" | "github-actions" | "docker-compose"
+type ChallengeType = "dockerfile" | "kubernetes"
 
 interface BugInfo {
   line: number
@@ -34,10 +34,8 @@ const DIFFICULTY_CONFIG = {
 }
 
 const TYPE_CONFIG = {
-  dockerfile:      { label: "Dockerfile",       icon: "🐳", color: "text-blue-400" },
-  kubernetes:      { label: "Kubernetes YAML",  icon: "☸️", color: "text-violet-400" },
-  "github-actions":{ label: "GitHub Actions",   icon: "⚙️", color: "text-pink-400" },
-  "docker-compose":{ label: "Docker Compose",   icon: "📦", color: "text-cyan-400" },
+  dockerfile:  { label: "Dockerfile",      icon: "🐳", color: "text-blue-400" },
+  kubernetes:  { label: "Kubernetes YAML", icon: "☸️", color: "text-violet-400" },
 }
 
 export default function BugFinderPage() {
@@ -91,7 +89,7 @@ export default function BugFinderPage() {
       const res = await fetch("/api/games/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userAnswer: answer, bugs: challenge.bugs, code: challenge.code }),
+        body: JSON.stringify({ userAnswer: answer, challenge }),
       })
       const data: ValidationResult = await res.json()
       setResult(data)
@@ -188,18 +186,18 @@ export default function BugFinderPage() {
             {/* Type */}
             <div className="flex-1">
               <p className="text-xs text-muted-foreground font-medium mb-2 uppercase tracking-wider">Challenge Type</p>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="flex gap-2">
                 {(Object.entries(TYPE_CONFIG) as [ChallengeType, typeof TYPE_CONFIG[keyof typeof TYPE_CONFIG]][]).map(([key, cfg]) => (
                   <button
                     key={key}
                     onClick={() => setType(key)}
-                    className={`py-2 px-3 rounded-lg border text-xs font-medium transition-all duration-150 text-left flex items-center gap-1.5 ${
+                    className={`flex-1 py-2 px-3 rounded-lg border text-sm font-medium transition-all duration-150 flex items-center justify-center gap-2 ${
                       type === key
                         ? "border-violet-500/50 bg-violet-500/10 text-violet-300"
                         : "border-border/50 text-muted-foreground hover:border-border"
                     }`}
                   >
-                    <span>{cfg.icon}</span>
+                    <span className="text-base">{cfg.icon}</span>
                     {cfg.label}
                   </button>
                 ))}
@@ -252,7 +250,7 @@ export default function BugFinderPage() {
                 <div className="w-3 h-3 rounded-full bg-yellow-500/70" />
                 <div className="w-3 h-3 rounded-full bg-green-500/70" />
                 <span className="ml-2 text-xs text-muted-foreground font-mono">
-                  {type === "dockerfile" ? "Dockerfile" : type === "github-actions" ? ".github/workflows/deploy.yml" : type === "kubernetes" ? "deployment.yaml" : "docker-compose.yml"}
+                  {type === "dockerfile" ? "Dockerfile" : "deployment.yaml"}
                 </span>
               </div>
               <div className="overflow-x-auto">
