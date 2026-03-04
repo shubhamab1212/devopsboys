@@ -1,103 +1,92 @@
 import type { Metadata } from "next"
-import { ShoppingBag, FileText, Terminal, GitBranch, Star, Shield, Download, Zap } from "lucide-react"
+import { ShoppingBag, FileText, Terminal, GitBranch, Shield, Zap, Clock } from "lucide-react"
+import { InterestButton } from "@/components/interest-button"
 
 export const metadata: Metadata = {
   title: "Shop — DevOps Resources & Digital Products",
-  description: "Premium DevOps resources: Interview prep bundles, cheat sheet packs, and GitHub Actions templates. Instant download.",
+  description: "Premium DevOps resources: Interview prep bundles, cheat sheet packs, and GitHub Actions templates. Coming soon.",
 }
 
 const products = [
   {
-    id: "interview-prep",
+    id: "interview-prep-bundle",
     title: "DevOps Interview Prep Bundle",
-    subtitle: "500+ Q&A — Docker, Kubernetes, AWS, CI/CD",
+    subtitle: "1000+ Q&A — Docker, Kubernetes, AWS, CI/CD, Linux",
     description:
-      "The complete interview preparation guide for DevOps engineers. Covers every topic interviewers actually ask — with detailed answers, not just buzzwords.",
+      "The most comprehensive interview preparation guide for DevOps engineers. Covers every topic interviewers actually ask — with detailed answers, real examples, and system design walkthroughs.",
     price: "$12",
-    originalPrice: "$19",
-    gumroadUrl: "https://devopsboys.gumroad.com/l/interview-prep-bundle",
     icon: FileText,
     iconBg: "bg-violet-500/10",
     iconColor: "text-violet-400",
-    badge: "Best Seller",
-    badgeColor: "bg-violet-500/10 text-violet-400 border-violet-500/30",
     gradient: "from-violet-500/10 via-transparent to-transparent",
-    border: "border-violet-500/20 hover:border-violet-500/50",
+    border: "border-violet-500/20 hover:border-violet-500/40",
     accentColor: "text-violet-400",
     includes: [
-      "500+ curated Q&A with detailed answers",
-      "Docker — architecture, networking, security",
-      "Kubernetes — pods, deployments, RBAC, troubleshooting",
-      "AWS — EC2, EKS, S3, IAM, Lambda",
-      "CI/CD — GitHub Actions, Jenkins, ArgoCD",
+      "1000+ curated Q&A with detailed answers",
+      "Docker — architecture, networking, security, multi-stage",
+      "Kubernetes — pods, deployments, RBAC, troubleshooting, design",
+      "AWS — EC2, EKS, S3, IAM, Lambda, VPC, CloudWatch",
+      "CI/CD — GitHub Actions, Jenkins, ArgoCD, GitOps",
+      "Linux, Networking, DevSecOps, Observability",
       "System design questions for senior roles",
     ],
-    format: "PDF — instant download",
-    pages: "120+ pages",
+    format: "PDF — 300+ pages",
   },
   {
-    id: "cheatsheets",
+    id: "cheatsheets-pack",
     title: "DevOps Cheat Sheets Pack",
-    subtitle: "Docker · Kubernetes · AWS · Git — all in one",
+    subtitle: "Docker · Kubernetes · AWS · Git · Linux · Helm · Terraform",
     description:
-      "4 beautifully formatted cheat sheets with every command you actually need. Print them, pin them, use them every day. Production-ready, no fluff.",
+      "7 beautifully formatted cheat sheets with every command you actually need. 500+ pages of production-ready reference. Print them, pin them, use them every day.",
     price: "$9",
-    originalPrice: "$15",
-    gumroadUrl: "https://devopsboys.gumroad.com/l/cheatsheets-pack",
     icon: Terminal,
     iconBg: "bg-cyan-500/10",
     iconColor: "text-cyan-400",
-    badge: "Most Popular",
-    badgeColor: "bg-cyan-500/10 text-cyan-400 border-cyan-500/30",
     gradient: "from-cyan-500/10 via-transparent to-transparent",
-    border: "border-cyan-500/20 hover:border-cyan-500/50",
+    border: "border-cyan-500/20 hover:border-cyan-500/40",
     accentColor: "text-cyan-400",
     includes: [
-      "Docker — 55+ commands with examples",
-      "Kubernetes — 65+ kubectl commands",
-      "AWS CLI — EC2, S3, EKS, IAM commands",
-      "Git — daily workflow to advanced tricks",
-      "Copy-paste ready for terminal use",
-      "Printable A4 format",
+      "Docker — 100+ commands with flags and examples",
+      "Kubernetes — 120+ kubectl commands and patterns",
+      "AWS CLI — EC2, S3, EKS, IAM, Lambda commands",
+      "Git — from daily workflow to advanced internals",
+      "Linux — file system, processes, networking, permissions",
+      "Helm — chart creation, install, upgrade, debug",
+      "Terraform — init, plan, apply, state management",
     ],
-    format: "4 PDFs — instant download",
-    pages: "4 cheat sheets",
+    format: "7 PDFs — 500+ pages total",
   },
   {
-    id: "github-actions",
+    id: "github-actions-templates",
     title: "GitHub Actions Templates Pack",
-    subtitle: "10 ready-to-use CI/CD workflow files",
+    subtitle: "15+ ready-to-use CI/CD workflow files",
     description:
-      "Stop writing pipelines from scratch. 10 production-tested GitHub Actions workflows — copy, paste, and ship. Covers Docker builds, Kubernetes deploys, and more.",
+      "Stop writing pipelines from scratch. 15+ production-tested GitHub Actions workflows — copy, paste, and ship. Covers every common DevOps scenario.",
     price: "$7",
-    originalPrice: "$12",
-    gumroadUrl: "https://devopsboys.gumroad.com/l/github-actions-templates",
     icon: GitBranch,
     iconBg: "bg-emerald-500/10",
     iconColor: "text-emerald-400",
-    badge: "New",
-    badgeColor: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
     gradient: "from-emerald-500/10 via-transparent to-transparent",
-    border: "border-emerald-500/20 hover:border-emerald-500/50",
+    border: "border-emerald-500/20 hover:border-emerald-500/40",
     accentColor: "text-emerald-400",
     includes: [
+      "Node.js / Python / Go CI pipelines",
       "Docker build + push to GHCR",
       "Kubernetes rolling deployment",
-      "Node.js / Python / Go CI pipelines",
-      "PR checks with lint + test",
-      "Scheduled jobs & cron workflows",
       "Multi-environment deploy (dev/staging/prod)",
+      "PR checks with lint, test, and size gate",
+      "Trivy security scan + GitHub Security tab",
+      "Terraform plan on PR, apply on merge",
+      "Slack notifications, auto-release, scheduled jobs",
     ],
-    format: "10 YAML files + README — instant download",
-    pages: "10 templates",
+    format: "15+ YAML files + README",
   },
 ]
 
 const trustBadges = [
-  { icon: Download, label: "Instant Download" },
+  { icon: Clock, label: "Launching Soon" },
   { icon: Shield, label: "Secure Payment" },
   { icon: Zap, label: "Lifetime Access" },
-  { icon: Star, label: "30-day Refund" },
 ]
 
 export default function ShopPage() {
@@ -123,12 +112,17 @@ export default function ShopPage() {
               DevOps Resources
             </span>
           </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mb-8 leading-relaxed">
+          <p className="text-lg text-muted-foreground max-w-2xl mb-4 leading-relaxed">
             Practical, no-fluff resources for DevOps engineers. Interview prep, cheat sheets, and
             ready-to-use templates — everything you need to level up fast.
           </p>
 
-          {/* Trust badges */}
+          {/* Coming soon banner */}
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-sm font-medium mb-6">
+            <Clock className="h-4 w-4" />
+            Products launching soon — tap &quot;I&apos;m Interested&quot; to get notified
+          </div>
+
           <div className="flex flex-wrap gap-3">
             {trustBadges.map(({ icon: Icon, label }) => (
               <div
@@ -145,7 +139,7 @@ export default function ShopPage() {
 
       {/* Products */}
       <section className="container mx-auto max-w-5xl px-4 py-12 pb-20">
-        <div className="grid gap-6 lg:grid-cols-1">
+        <div className="grid gap-6">
           {products.map((product) => {
             const Icon = product.icon
             return (
@@ -153,30 +147,25 @@ export default function ShopPage() {
                 key={product.id}
                 className={`group relative rounded-2xl border bg-card overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-2xl ${product.border}`}
               >
-                {/* Gradient overlay */}
-                <div
-                  className={`absolute inset-0 bg-gradient-to-br ${product.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none`}
-                />
+                {/* Coming soon overlay badge */}
+                <div className="absolute top-4 right-4 z-10">
+                  <span className="px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-xs font-semibold">
+                    Coming Soon
+                  </span>
+                </div>
+
+                <div className={`absolute inset-0 bg-gradient-to-br ${product.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none`} />
 
                 <div className="relative p-6 md:p-8">
                   <div className="flex flex-col md:flex-row md:items-start gap-6">
                     {/* Left: Info */}
                     <div className="flex-1">
                       <div className="flex items-start gap-4 mb-4">
-                        <div
-                          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${product.iconBg}`}
-                        >
+                        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${product.iconBg}`}>
                           <Icon className={`h-5 w-5 ${product.iconColor}`} />
                         </div>
                         <div>
-                          <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <h2 className="text-xl font-bold">{product.title}</h2>
-                            <span
-                              className={`px-2 py-0.5 rounded-full border text-[11px] font-semibold ${product.badgeColor}`}
-                            >
-                              {product.badge}
-                            </span>
-                          </div>
+                          <h2 className="text-xl font-bold mb-1">{product.title}</h2>
                           <p className={`text-sm font-medium ${product.accentColor}`}>
                             {product.subtitle}
                           </p>
@@ -187,7 +176,6 @@ export default function ShopPage() {
                         {product.description}
                       </p>
 
-                      {/* What's included */}
                       <div className="space-y-2 mb-5">
                         {product.includes.map((item) => (
                           <div key={item} className="flex items-start gap-2">
@@ -197,43 +185,17 @@ export default function ShopPage() {
                         ))}
                       </div>
 
-                      {/* Meta */}
-                      <div className="flex gap-4 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Download className="h-3 w-3" />
-                          {product.format}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <FileText className="h-3 w-3" />
-                          {product.pages}
-                        </span>
-                      </div>
+                      <p className="text-xs text-muted-foreground">{product.format}</p>
                     </div>
 
-                    {/* Right: Price + CTA */}
-                    <div className="flex flex-col items-center md:items-end gap-3 md:min-w-[160px]">
+                    {/* Right: Price + Interest button */}
+                    <div className="flex flex-col items-center md:items-end gap-3 md:min-w-[170px]">
                       <div className="text-center md:text-right">
-                        <div className="flex items-baseline gap-2 justify-center md:justify-end">
-                          <span className="text-3xl font-extrabold">{product.price}</span>
-                          <span className="text-base text-muted-foreground line-through">
-                            {product.originalPrice}
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">One-time purchase</p>
+                        <div className="text-3xl font-extrabold">{product.price}</div>
+                        <p className="text-xs text-muted-foreground mt-0.5">at launch</p>
                       </div>
 
-                      <a
-                        href={product.gumroadUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`w-full md:w-auto px-6 py-2.5 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-500 hover:to-blue-500 transition-all duration-200 hover:shadow-lg hover:shadow-violet-500/20 text-center`}
-                      >
-                        Buy Now →
-                      </a>
-
-                      <p className="text-[11px] text-muted-foreground text-center">
-                        Secure checkout via Gumroad
-                      </p>
+                      <InterestButton product={product.id} />
                     </div>
                   </div>
                 </div>
@@ -242,15 +204,13 @@ export default function ShopPage() {
           })}
         </div>
 
-        {/* Bottom note */}
         <div className="mt-8 rounded-2xl border border-dashed border-border bg-card/50 p-6 text-center">
-          <p className="text-sm font-medium mb-1">Questions about a product?</p>
+          <p className="text-sm font-medium mb-1">Questions? Suggestions?</p>
           <p className="text-sm text-muted-foreground">
             Email us at{" "}
             <a href="mailto:hello@devopsboys.com" className="text-primary hover:underline">
               hello@devopsboys.com
-            </a>{" "}
-            — we reply within 24 hours.
+            </a>
           </p>
         </div>
       </section>
