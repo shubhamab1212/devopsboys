@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import { Bug, Zap, RefreshCw, ChevronRight, Lightbulb, CheckCircle2, XCircle, Trophy, Flame } from "lucide-react"
+import { Bug, Zap, RefreshCw, Lightbulb, CheckCircle2, XCircle, Trophy, Flame, MousePointerClick } from "lucide-react"
 
 type Difficulty = "easy" | "medium" | "hard"
 type ChallengeType = "dockerfile" | "kubernetes"
@@ -20,47 +20,43 @@ interface Challenge {
   explanation: string
 }
 
-interface ValidationResult {
-  correct: boolean
-  partial: boolean
-  score: number
-  feedback: string
-}
+type GameState = "playing" | "correct" | "partial" | "wrong"
 
 const DIFFICULTY_CONFIG = {
-  easy:   { label: "Easy",   color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30", glow: "shadow-emerald-500/20", points: 100 },
-  medium: { label: "Medium", color: "text-amber-400",   bg: "bg-amber-500/10",   border: "border-amber-500/30",   glow: "shadow-amber-500/20",   points: 200 },
-  hard:   { label: "Hard",   color: "text-red-400",     bg: "bg-red-500/10",     border: "border-red-500/30",     glow: "shadow-red-500/20",     points: 400 },
+  easy:   { label: "Easy",   color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30", points: 100 },
+  medium: { label: "Medium", color: "text-amber-400",   bg: "bg-amber-500/10",   border: "border-amber-500/30",   points: 200 },
+  hard:   { label: "Hard",   color: "text-red-400",     bg: "bg-red-500/10",     border: "border-red-500/30",     points: 400 },
 }
 
 const TYPE_CONFIG = {
-  dockerfile:  { label: "Dockerfile",      icon: "🐳", color: "text-blue-400" },
-  kubernetes:  { label: "Kubernetes YAML", icon: "☸️", color: "text-violet-400" },
+  dockerfile: { label: "Dockerfile",      icon: "🐳" },
+  kubernetes: { label: "Kubernetes YAML", icon: "☸️" },
 }
 
 export default function BugFinderPage() {
-  const [difficulty, setDifficulty] = useState<Difficulty>("medium")
-  const [type, setType]             = useState<ChallengeType>("dockerfile")
-  const [challenge, setChallenge]   = useState<Challenge | null>(null)
-  const [loading, setLoading]       = useState(false)
-  const [answer, setAnswer]         = useState("")
-  const [validating, setValidating] = useState(false)
-  const [result, setResult]         = useState<ValidationResult | null>(null)
-  const [showHint, setShowHint]     = useState(false)
-  const [revealed, setRevealed]     = useState(false)
-  const [score, setScore]           = useState(0)
-  const [streak, setStreak]         = useState(0)
-  const [solved, setSolved]         = useState(0)
-  const [error, setError]           = useState<string | null>(null)
+  const [difficulty, setDifficulty]     = useState<Difficulty>("medium")
+  const [type, setType]                 = useState<ChallengeType>("dockerfile")
+  const [challenge, setChallenge]       = useState<Challenge | null>(null)
+  const [loading, setLoading]           = useState(false)
+  const [selectedLines, setSelectedLines] = useState<Set<number>>(new Set())
+  const [gameState, setGameState]       = useState<GameState>("playing")
+  const [showHint, setShowHint]         = useState(false)
+  const [revealed, setRevealed]         = useState(false)
+  const [score, setScore]               = useState(0)
+  const [streak, setStreak]             = useState(0)
+  const [solved, setSolved]             = useState(0)
+  const [error, setError]               = useState<string | null>(null)
+  const [earnedPts, setEarnedPts]       = useState(0)
 
   const fetchChallenge = useCallback(async () => {
     setLoading(true)
     setChallenge(null)
-    setAnswer("")
-    setResult(null)
+    setSelectedLines(new Set())
+    setGameState("playing")
     setShowHint(false)
     setRevealed(false)
     setError(null)
+    setEarnedPts(0)
 
     try {
       const res = await fetch("/api/games/challenge", {
@@ -72,81 +68,117 @@ export default function BugFinderPage() {
       if (data.challenge) {
         setChallenge(data.challenge)
       } else {
-        setError(data.error ?? "Failed to generate challenge. Check if ANTHROPIC_API_KEY is set.")
+        setError(data.error ?? "Failed to load challenge.")
       }
-    } catch (e) {
-      setError("Network error — could not reach the API.")
-      console.error(e)
+    } catch {
+      setError("Network error — could not reach the server.")
     } finally {
       setLoading(false)
     }
   }, [difficulty, type])
 
-  const submitAnswer = async () => {
-    if (!challenge || !answer.trim()) return
-    setValidating(true)
-    try {
-      const res = await fetch("/api/games/validate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userAnswer: answer, challenge }),
-      })
-      const data: ValidationResult = await res.json()
-      setResult(data)
-      if (data.correct || data.partial) {
-        const pts = Math.round((data.score / 100) * DIFFICULTY_CONFIG[difficulty].points)
-        setScore(s => s + pts)
-        setSolved(s => s + 1)
-        setStreak(s => s + 1)
-      } else {
-        setStreak(0)
-      }
-    } catch {
-      // silently fail
-    } finally {
-      setValidating(false)
+  const toggleLine = (lineNum: number) => {
+    if (gameState !== "playing") return
+    setSelectedLines(prev => {
+      const next = new Set(prev)
+      if (next.has(lineNum)) next.delete(lineNum)
+      else next.add(lineNum)
+      return next
+    })
+  }
+
+  const submitAnswer = () => {
+    if (!challenge || selectedLines.size === 0) return
+
+    const bugLines = new Set(challenge.bugs.map(b => b.line))
+    const selected = Array.from(selectedLines)
+    const correctHits = selected.filter(l => bugLines.has(l))
+    const wrongHits   = selected.filter(l => !bugLines.has(l))
+    const allFound    = correctHits.length === bugLines.size
+
+    if (allFound && wrongHits.length === 0) {
+      // Perfect
+      const pts = DIFFICULTY_CONFIG[difficulty].points
+      setEarnedPts(pts)
+      setScore(s => s + pts)
+      setSolved(s => s + 1)
+      setStreak(s => s + 1)
+      setGameState("correct")
+    } else if (allFound && wrongHits.length > 0) {
+      // Found all bugs but also clicked wrong lines
+      const pts = Math.round(DIFFICULTY_CONFIG[difficulty].points * 0.5)
+      setEarnedPts(pts)
+      setScore(s => s + pts)
+      setSolved(s => s + 1)
+      setStreak(s => s + 1)
+      setGameState("partial")
+    } else if (correctHits.length > 0) {
+      // Found some bugs
+      const pts = Math.round(DIFFICULTY_CONFIG[difficulty].points * 0.25)
+      setEarnedPts(pts)
+      setScore(s => s + pts)
+      setStreak(0)
+      setGameState("partial")
+    } else {
+      // All wrong
+      setStreak(0)
+      setGameState("wrong")
     }
+    setRevealed(true)
   }
 
   const codeLines = challenge?.code.split("\n") ?? []
+  const bugLines  = new Set(challenge?.bugs.map(b => b.line) ?? [])
 
-  const bugLines = new Set(challenge?.bugs.map(b => b.line) ?? [])
+  const getLineStyle = (lineNum: number) => {
+    const isSelected = selectedLines.has(lineNum)
+    const isBug      = bugLines.has(lineNum)
+
+    if (revealed) {
+      if (isBug && isSelected)  return "bg-emerald-500/15 border-l-2 border-emerald-400" // correct hit
+      if (isBug && !isSelected) return "bg-red-500/15 border-l-2 border-red-400"          // missed bug
+      if (!isBug && isSelected) return "bg-orange-500/10 border-l-2 border-orange-400"    // wrong selection
+      return "hover:bg-white/[0.02]"
+    }
+    if (isSelected) return "bg-blue-500/15 border-l-2 border-blue-400"
+    return "hover:bg-white/[0.03] cursor-pointer"
+  }
 
   return (
     <main className="min-h-screen bg-background">
       {/* Hero */}
-      <section className="relative py-14 overflow-hidden">
+      <section className="relative py-12 overflow-hidden">
         <div className="absolute inset-0 bg-dot-grid opacity-30" />
         <div className="absolute top-10 left-1/4 w-64 h-64 bg-red-500/10 rounded-full blur-3xl animate-float" />
         <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-violet-500/10 rounded-full blur-3xl animate-float-delayed" />
 
         <div className="relative container mx-auto max-w-4xl px-4 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-red-500/30 bg-red-500/10 text-red-400 text-sm font-medium mb-6">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-red-500/30 bg-red-500/10 text-red-400 text-sm font-medium mb-5">
             <Bug className="h-4 w-4" />
-            AI-Powered Challenge
+            Click the Buggy Line
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">
+          <h1 className="text-4xl md:text-5xl font-bold mb-3">
             <span className="bg-gradient-to-r from-red-400 via-orange-400 to-amber-400 bg-clip-text text-transparent">
               Bug Finder
             </span>
           </h1>
-          <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-            Find bugs in real-world DevOps configs. AI generates a new challenge every time — no two are the same.
+          <p className="text-muted-foreground text-base max-w-lg mx-auto">
+            Find the bug by clicking the line with the mistake. Get it right — earn points.
           </p>
 
           {/* Stats */}
-          <div className="flex items-center justify-center gap-6 mt-8">
-            <div className="flex items-center gap-2 text-sm">
+          <div className="flex items-center justify-center gap-6 mt-6">
+            <div className="flex items-center gap-1.5 text-sm">
               <Trophy className="h-4 w-4 text-amber-400" />
               <span className="text-muted-foreground">Score:</span>
               <span className="font-bold text-amber-400">{score}</span>
             </div>
-            <div className="flex items-center gap-2 text-sm">
+            <div className="flex items-center gap-1.5 text-sm">
               <Flame className="h-4 w-4 text-orange-400" />
               <span className="text-muted-foreground">Streak:</span>
               <span className="font-bold text-orange-400">{streak}</span>
             </div>
-            <div className="flex items-center gap-2 text-sm">
+            <div className="flex items-center gap-1.5 text-sm">
               <CheckCircle2 className="h-4 w-4 text-emerald-400" />
               <span className="text-muted-foreground">Solved:</span>
               <span className="font-bold text-emerald-400">{solved}</span>
@@ -155,10 +187,10 @@ export default function BugFinderPage() {
         </div>
       </section>
 
-      <div className="container mx-auto max-w-4xl px-4 pb-20">
+      <div className="container mx-auto max-w-4xl px-4 pb-20 space-y-4">
 
         {/* Controls */}
-        <div className="rounded-xl border border-border/50 bg-card/50 p-5 mb-6 backdrop-blur-sm">
+        <div className="rounded-xl border border-border/50 bg-card/50 p-5 backdrop-blur-sm">
           <div className="flex flex-col sm:flex-row gap-4">
             {/* Difficulty */}
             <div className="flex-1">
@@ -172,7 +204,7 @@ export default function BugFinderPage() {
                       onClick={() => setDifficulty(d)}
                       className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-all duration-150 ${
                         difficulty === d
-                          ? `${cfg.bg} ${cfg.border} ${cfg.color} shadow-sm ${cfg.glow}`
+                          ? `${cfg.bg} ${cfg.border} ${cfg.color}`
                           : "border-border/50 text-muted-foreground hover:border-border"
                       }`}
                     >
@@ -187,7 +219,7 @@ export default function BugFinderPage() {
             <div className="flex-1">
               <p className="text-xs text-muted-foreground font-medium mb-2 uppercase tracking-wider">Challenge Type</p>
               <div className="flex gap-2">
-                {(Object.entries(TYPE_CONFIG) as [ChallengeType, typeof TYPE_CONFIG[keyof typeof TYPE_CONFIG]][]).map(([key, cfg]) => (
+                {(Object.entries(TYPE_CONFIG) as [ChallengeType, { label: string; icon: string }][]).map(([key, cfg]) => (
                   <button
                     key={key}
                     onClick={() => setType(key)}
@@ -211,37 +243,48 @@ export default function BugFinderPage() {
             className="mt-4 w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-400 hover:to-orange-400 text-white font-semibold text-sm shadow-lg shadow-red-500/20 hover:shadow-red-500/40 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {loading ? (
-              <>
-                <RefreshCw className="h-4 w-4 animate-spin" />
-                Generating challenge…
-              </>
+              <><RefreshCw className="h-4 w-4 animate-spin" /> Loading challenge…</>
             ) : (
-              <>
-                <Zap className="h-4 w-4" />
-                {challenge ? "New Challenge" : "Generate Challenge"}
-                <ChevronRight className="h-4 w-4" />
-              </>
+              <><Zap className="h-4 w-4" />{challenge ? "New Challenge" : "Start Challenge"}</>
             )}
           </button>
         </div>
+
+        {/* Error */}
+        {error && (
+          <div className="flex items-start gap-3 p-4 rounded-xl border border-red-500/30 bg-red-500/5 text-sm text-red-300">
+            <XCircle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
+            <p>{error}</p>
+          </div>
+        )}
 
         {/* Challenge */}
         {challenge && (
           <div className="space-y-4 animate-fade-up opacity-0" style={{ animationFillMode: "forwards" }}>
 
-            {/* Challenge header */}
+            {/* Header */}
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="font-semibold text-foreground">{challenge.title}</h2>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {TYPE_CONFIG[type].icon} {TYPE_CONFIG[type].label} &middot; {DIFFICULTY_CONFIG[difficulty].label}
-                  {" "}&middot; {challenge.bugs.length} bug{challenge.bugs.length > 1 ? "s" : ""} hidden
+                  {TYPE_CONFIG[type].icon} {TYPE_CONFIG[type].label}
+                  {" · "}{DIFFICULTY_CONFIG[difficulty].label}
+                  {" · "}{challenge.bugs.length} bug{challenge.bugs.length > 1 ? "s" : ""} hidden
                 </p>
               </div>
               <span className={`text-xs px-2.5 py-1 rounded-full border font-semibold ${DIFFICULTY_CONFIG[difficulty].bg} ${DIFFICULTY_CONFIG[difficulty].border} ${DIFFICULTY_CONFIG[difficulty].color}`}>
                 +{DIFFICULTY_CONFIG[difficulty].points} pts
               </span>
             </div>
+
+            {/* Instruction */}
+            {gameState === "playing" && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground/70 bg-blue-500/5 border border-blue-500/15 rounded-lg px-3 py-2">
+                <MousePointerClick className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+                Click the line(s) where you think the bug is, then hit Submit
+                {challenge.bugs.length > 1 && <span className="text-amber-400 ml-1">— {challenge.bugs.length} bugs total</span>}
+              </div>
+            )}
 
             {/* Code block */}
             <div className="rounded-xl border border-border/50 bg-[#0d1117] overflow-hidden">
@@ -252,24 +295,40 @@ export default function BugFinderPage() {
                 <span className="ml-2 text-xs text-muted-foreground font-mono">
                   {type === "dockerfile" ? "Dockerfile" : "deployment.yaml"}
                 </span>
+                {selectedLines.size > 0 && gameState === "playing" && (
+                  <span className="ml-auto text-xs text-blue-400">
+                    {selectedLines.size} line{selectedLines.size > 1 ? "s" : ""} selected
+                  </span>
+                )}
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full font-mono text-sm">
                   <tbody>
                     {codeLines.map((line, i) => {
                       const lineNum = i + 1
-                      const isBug = revealed && bugLines.has(lineNum)
+                      const isSelected = selectedLines.has(lineNum)
+                      const isBugLine  = bugLines.has(lineNum)
+
+                      // Label after reveal
+                      let revealLabel = null
+                      if (revealed) {
+                        if (isBugLine && isSelected)  revealLabel = <span className="ml-3 text-[10px] text-emerald-400 font-sans">✓ bug found</span>
+                        if (isBugLine && !isSelected) revealLabel = <span className="ml-3 text-[10px] text-red-400 font-sans">← bug here</span>
+                        if (!isBugLine && isSelected) revealLabel = <span className="ml-3 text-[10px] text-orange-400 font-sans">✗ wrong line</span>
+                      }
+
                       return (
                         <tr
                           key={i}
-                          className={`group ${isBug ? "bg-red-500/10" : "hover:bg-white/[0.02]"}`}
+                          onClick={() => toggleLine(lineNum)}
+                          className={`group transition-colors duration-100 select-none ${getLineStyle(lineNum)} ${gameState === "playing" ? "cursor-pointer" : ""}`}
                         >
-                          <td className="select-none w-10 text-right pr-4 pl-3 py-0.5 text-muted-foreground/40 text-xs border-r border-border/20">
+                          <td className="w-10 text-right pr-3 pl-3 py-0.5 text-muted-foreground/40 text-xs border-r border-border/20 shrink-0">
                             {lineNum}
                           </td>
-                          <td className={`pl-4 pr-4 py-0.5 whitespace-pre ${isBug ? "text-red-300" : "text-slate-300"}`}>
+                          <td className="pl-4 pr-4 py-0.5 whitespace-pre text-slate-300">
                             {line || " "}
-                            {isBug && <span className="ml-3 text-[10px] text-red-400/70 font-sans">← bug</span>}
+                            {revealLabel}
                           </td>
                         </tr>
                       )
@@ -280,131 +339,88 @@ export default function BugFinderPage() {
             </div>
 
             {/* Hint */}
-            {!result && (
+            {gameState === "playing" && (
               <button
                 onClick={() => setShowHint(h => !h)}
-                className="flex items-center gap-2 text-sm text-amber-400/80 hover:text-amber-400 transition-colors"
+                className="flex items-center gap-2 text-sm text-amber-400/70 hover:text-amber-400 transition-colors"
               >
                 <Lightbulb className="h-4 w-4" />
-                {showHint ? "Hide hint" : "Show hint (−50 pts)"}
+                {showHint ? "Hide hint" : "Show hint"}
               </button>
             )}
             {showHint && (
-              <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 text-sm text-amber-200/80">
+              <div className="flex items-start gap-3 p-3 rounded-xl border border-amber-500/20 bg-amber-500/5 text-sm text-amber-200/80">
                 <Lightbulb className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
                 {challenge.hint}
               </div>
             )}
 
-            {/* Answer input */}
-            {!result && (
-              <div className="space-y-3">
-                <label className="text-sm font-medium text-muted-foreground">
-                  Describe the bug(s) you found:
-                </label>
-                <textarea
-                  value={answer}
-                  onChange={e => setAnswer(e.target.value)}
-                  placeholder="e.g. Line 3 uses :latest tag which is not pinned to a specific version, causing unpredictable builds..."
-                  rows={3}
-                  className="w-full rounded-xl border border-border/50 bg-card/50 px-4 py-3 text-sm font-mono resize-none focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/20 placeholder:text-muted-foreground/40 transition-all"
-                />
-                <button
-                  onClick={submitAnswer}
-                  disabled={validating || !answer.trim()}
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-500 hover:to-blue-500 text-white font-semibold text-sm shadow-lg shadow-violet-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {validating ? "Checking with AI…" : "Submit Answer"}
-                </button>
-              </div>
+            {/* Submit button */}
+            {gameState === "playing" && (
+              <button
+                onClick={submitAnswer}
+                disabled={selectedLines.size === 0}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-500 hover:to-blue-500 text-white font-semibold text-sm shadow-lg shadow-violet-500/20 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Submit Answer
+              </button>
             )}
 
             {/* Result */}
-            {result && (
+            {gameState !== "playing" && (
               <div className={`rounded-xl border p-5 space-y-4 ${
-                result.correct
-                  ? "border-emerald-500/30 bg-emerald-500/5"
-                  : result.partial
-                  ? "border-amber-500/30 bg-amber-500/5"
-                  : "border-red-500/30 bg-red-500/5"
+                gameState === "correct" ? "border-emerald-500/30 bg-emerald-500/5"
+                : gameState === "partial" ? "border-amber-500/30 bg-amber-500/5"
+                : "border-red-500/30 bg-red-500/5"
               }`}>
-                <div className="flex items-center gap-3">
-                  {result.correct ? (
-                    <CheckCircle2 className="h-6 w-6 text-emerald-400 shrink-0" />
-                  ) : result.partial ? (
-                    <CheckCircle2 className="h-6 w-6 text-amber-400 shrink-0" />
+                <div className="flex items-start gap-3">
+                  {gameState === "correct" ? (
+                    <CheckCircle2 className="h-6 w-6 text-emerald-400 shrink-0 mt-0.5" />
+                  ) : gameState === "partial" ? (
+                    <CheckCircle2 className="h-6 w-6 text-amber-400 shrink-0 mt-0.5" />
                   ) : (
-                    <XCircle className="h-6 w-6 text-red-400 shrink-0" />
+                    <XCircle className="h-6 w-6 text-red-400 shrink-0 mt-0.5" />
                   )}
-                  <div>
-                    <p className={`font-semibold ${result.correct ? "text-emerald-400" : result.partial ? "text-amber-400" : "text-red-400"}`}>
-                      {result.correct ? "Correct! Well spotted." : result.partial ? "Partially correct!" : "Not quite."}
-                      {(result.correct || result.partial) && (
-                        <span className="ml-2 text-xs opacity-70">
-                          +{Math.round((result.score / 100) * DIFFICULTY_CONFIG[difficulty].points)} pts
-                        </span>
-                      )}
+                  <div className="flex-1">
+                    <p className={`font-semibold ${gameState === "correct" ? "text-emerald-400" : gameState === "partial" ? "text-amber-400" : "text-red-400"}`}>
+                      {gameState === "correct" ? "Correct!" : gameState === "partial" ? "Partially correct!" : "Wrong line!"}
+                      {earnedPts > 0 && <span className="ml-2 text-xs opacity-70">+{earnedPts} pts</span>}
                     </p>
-                    <p className="text-sm text-muted-foreground mt-1">{result.feedback}</p>
+
+                    {/* Bug details */}
+                    <div className="mt-3 space-y-2">
+                      {challenge.bugs.map((bug, i) => (
+                        <div key={i} className="p-3 rounded-lg bg-background/50 border border-border/30 text-sm space-y-1">
+                          <p className="font-mono text-xs text-red-400">Line {bug.line}</p>
+                          <p className="text-foreground/80">{bug.description}</p>
+                          <p className="text-emerald-400/80 text-xs">Fix: {bug.fix}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-3 italic">{challenge.explanation}</p>
                   </div>
                 </div>
 
-                {/* Show answer button */}
-                {!revealed && (
-                  <button
-                    onClick={() => setRevealed(true)}
-                    className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
-                  >
-                    Reveal bugs in code
-                  </button>
-                )}
-
-                {/* Bug details */}
-                {revealed && (
-                  <div className="space-y-2 pt-2 border-t border-border/30">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Bug Details</p>
-                    {challenge.bugs.map((bug, i) => (
-                      <div key={i} className="p-3 rounded-lg bg-background/50 border border-border/30 text-sm space-y-1">
-                        <p className="font-mono text-xs text-red-400">Line {bug.line}</p>
-                        <p className="text-foreground/80">{bug.description}</p>
-                        <p className="text-emerald-400/80 text-xs">Fix: {bug.fix}</p>
-                      </div>
-                    ))}
-                    <p className="text-xs text-muted-foreground pt-1 italic">{challenge.explanation}</p>
-                  </div>
-                )}
-
-                {/* Next challenge */}
+                {/* Next */}
                 <button
                   onClick={fetchChallenge}
                   disabled={loading}
                   className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-border/50 hover:border-violet-500/40 hover:bg-violet-500/5 text-sm font-medium text-muted-foreground hover:text-violet-400 transition-all duration-200"
                 >
                   <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-                  {loading ? "Generating…" : "Next Challenge →"}
+                  {loading ? "Loading…" : "Next Challenge →"}
                 </button>
               </div>
             )}
           </div>
         )}
 
-        {/* Error state */}
-        {error && (
-          <div className="flex items-start gap-3 p-4 rounded-xl border border-red-500/30 bg-red-500/5 text-sm text-red-300">
-            <XCircle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-red-400 mb-0.5">Error</p>
-              <p>{error}</p>
-            </div>
-          </div>
-        )}
-
         {/* Empty state */}
         {!challenge && !loading && !error && (
           <div className="text-center py-20 text-muted-foreground">
-            <Bug className="h-12 w-12 mx-auto mb-4 opacity-20" />
-            <p className="text-lg font-medium opacity-50">Pick difficulty &amp; type, then hit Generate</p>
-            <p className="text-sm opacity-30 mt-1">AI will create a unique buggy config for you to debug</p>
+            <MousePointerClick className="h-12 w-12 mx-auto mb-4 opacity-20" />
+            <p className="text-lg font-medium opacity-50">Pick difficulty & type, then start</p>
+            <p className="text-sm opacity-30 mt-1">Click the buggy line to win</p>
           </div>
         )}
       </div>
