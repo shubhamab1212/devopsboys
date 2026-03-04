@@ -77,6 +77,6 @@ Respond with ONLY valid JSON, no markdown, no code blocks:
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error("Challenge generation error:", msg)
-    return NextResponse.json({ error: "Failed to generate challenge" }, { status: 500 })
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
