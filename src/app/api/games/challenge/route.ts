@@ -67,6 +67,10 @@ Respond with ONLY valid JSON in this exact format:
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error("Challenge generation error:", msg)
-    return NextResponse.json({ error: msg }, { status: 500 })
+    // Check for common Anthropic API errors
+    if (msg.includes("credit balance")) {
+      return NextResponse.json({ error: "API credits exhausted. Please add credits at console.anthropic.com" }, { status: 500 })
+    }
+    return NextResponse.json({ error: "Failed to generate challenge" }, { status: 500 })
   }
 }
