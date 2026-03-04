@@ -53,6 +53,7 @@ export default function BugFinderPage() {
   const [score, setScore]           = useState(0)
   const [streak, setStreak]         = useState(0)
   const [solved, setSolved]         = useState(0)
+  const [error, setError]           = useState<string | null>(null)
 
   const fetchChallenge = useCallback(async () => {
     setLoading(true)
@@ -61,6 +62,7 @@ export default function BugFinderPage() {
     setResult(null)
     setShowHint(false)
     setRevealed(false)
+    setError(null)
 
     try {
       const res = await fetch("/api/games/challenge", {
@@ -69,9 +71,14 @@ export default function BugFinderPage() {
         body: JSON.stringify({ difficulty, type }),
       })
       const data = await res.json()
-      if (data.challenge) setChallenge(data.challenge)
-    } catch {
-      // silently fail
+      if (data.challenge) {
+        setChallenge(data.challenge)
+      } else {
+        setError(data.error ?? "Failed to generate challenge. Check if ANTHROPIC_API_KEY is set.")
+      }
+    } catch (e) {
+      setError("Network error — could not reach the API.")
+      console.error(e)
     } finally {
       setLoading(false)
     }
@@ -383,8 +390,19 @@ export default function BugFinderPage() {
           </div>
         )}
 
+        {/* Error state */}
+        {error && (
+          <div className="flex items-start gap-3 p-4 rounded-xl border border-red-500/30 bg-red-500/5 text-sm text-red-300">
+            <XCircle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-red-400 mb-0.5">Error</p>
+              <p>{error}</p>
+            </div>
+          </div>
+        )}
+
         {/* Empty state */}
-        {!challenge && !loading && (
+        {!challenge && !loading && !error && (
           <div className="text-center py-20 text-muted-foreground">
             <Bug className="h-12 w-12 mx-auto mb-4 opacity-20" />
             <p className="text-lg font-medium opacity-50">Pick difficulty &amp; type, then hit Generate</p>
