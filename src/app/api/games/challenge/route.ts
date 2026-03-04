@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import Anthropic from "@anthropic-ai/sdk"
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-
-const DIFFICULTY_TOKENS = { easy: 600, medium: 800, hard: 1000 }
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`
 
 export async function POST(req: NextRequest) {
   try {
@@ -36,7 +33,7 @@ Rules:
 - For medium: subtle issues (wrong resource limits, missing health check, security issue)
 - For hard: multiple interacting bugs or non-obvious misconfigurations
 
-Respond with ONLY valid JSON in this exact format:
+Respond with ONLY valid JSON, no markdown, no code blocks:
 {
   "title": "short descriptive title of what this config does",
   "code": "the full buggy code here (use \\n for newlines)",
@@ -51,26 +48,35 @@ Respond with ONLY valid JSON in this exact format:
   "explanation": "a 2-3 sentence explanation of why these bugs matter in production"
 }`
 
-    const message = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: DIFFICULTY_TOKENS[difficulty as keyof typeof DIFFICULTY_TOKENS],
-      messages: [{ role: "user", content: prompt }],
+    const apiKey = process.env.GEMINI_API_KEY
+    if (!apiKey) throw new Error("GEMINI_API_KEY not set")
+
+    const res = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.9, maxOutputTokens: 1200 },
+      }),
     })
 
-    const raw = (message.content[0] as { type: string; text: string }).text.trim()
-    // Extract JSON even if there's extra text
+    if (!res.ok) {
+      const errText = await res.text()
+      throw new Error(`Gemini API error: ${res.status} ${errText}`)
+    }
+
+    const geminiData = await res.json()
+    const raw = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
+    if (!raw) throw new Error("Empty response from Gemini")
+
     const jsonMatch = raw.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) throw new Error("Invalid response from AI")
+    if (!jsonMatch) throw new Error("Invalid JSON from Gemini")
 
     const challenge = JSON.parse(jsonMatch[0])
     return NextResponse.json({ challenge, type, difficulty })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error("Challenge generation error:", msg)
-    // Check for common Anthropic API errors
-    if (msg.includes("credit balance")) {
-      return NextResponse.json({ error: "API credits exhausted. Please add credits at console.anthropic.com" }, { status: 500 })
-    }
     return NextResponse.json({ error: "Failed to generate challenge" }, { status: 500 })
   }
 }
