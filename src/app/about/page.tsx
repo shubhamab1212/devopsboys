@@ -42,8 +42,9 @@ export default function AboutPage() {
               devopsboys
             </Link>
             <Link href="mailto:hello@devopsboys.com"
-              className="w-9 h-9 rounded-lg border border-border bg-card flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/50 hover:bg-accent transition-all">
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-card text-sm font-medium text-muted-foreground hover:text-foreground hover:border-primary/50 hover:bg-accent transition-all">
               <Mail className="h-4 w-4" />
+              hello@devopsboys.com
             </Link>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Terminal, Rss } from "lucide-react"
+import { Terminal, Rss, Mail } from "lucide-react"
 import { Separator } from "./ui/separator"
 
 function XIcon({ className }: { className?: string }) {
@@ -49,7 +49,14 @@ export function Footer() {
                 className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/50 hover:bg-accent transition-all">
                 <Rss className="h-3.5 w-3.5" />
               </Link>
+              <Link href="mailto:hello@devopsboys.com"
+                className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/50 hover:bg-accent transition-all">
+                <Mail className="h-3.5 w-3.5" />
+              </Link>
             </div>
+            <p className="text-xs text-muted-foreground">
+              Contact: <Link href="mailto:hello@devopsboys.com" className="hover:text-foreground transition-colors">hello@devopsboys.com</Link>
+            </p>
           </div>
 
           {/* Quick Links */}

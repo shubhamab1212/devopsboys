@@ -1,0 +1,857 @@
+---
+title: "Kubernetes Troubleshooting Guide 2026: Fix Every Common Problem"
+description: "The most complete Kubernetes troubleshooting guide for 2026. Learn how to diagnose and fix Pod crashes, ImagePullBackOff, OOMKilled, CrashLoopBackOff, networking issues, PVC problems, node NotReady, and more — with exact kubectl commands."
+date: 2026-03-15
+tags: ["kubernetes", "devops", "cloud", "docker"]
+published: true
+---
+
+Kubernetes is powerful — but when something breaks at 2 AM, you need answers fast.
+
+This guide covers every common Kubernetes problem you'll encounter in production, with exact diagnostic commands and step-by-step fixes. Bookmark it. You'll need it.
+
+---
+
+## How to Read This Guide
+
+Each section follows the same pattern:
+1. **What the error means** — understand it before you fix it
+2. **How to diagnose** — exact `kubectl` commands
+3. **How to fix** — step-by-step solution
+
+---
+
+## 1. Pod Stuck in `Pending`
+
+### What It Means
+
+A Pending Pod hasn't been scheduled onto any node yet. The scheduler is trying to find a suitable node but can't.
+
+### Why It Happens
+
+- Not enough CPU or memory on any node
+- Node selectors / affinity rules don't match any node
+- Tolerations missing for tainted nodes
+- No PersistentVolume available to bind the PVC
+
+### How to Diagnose
+
+```bash
+kubectl describe pod <pod-name> -n <namespace>
+```
+
+Look at the **Events** section at the bottom. The scheduler writes its reason there.
+
+Common messages:
+- `0/3 nodes are available: 3 Insufficient cpu` → not enough CPU
+- `0/3 nodes are available: 3 node(s) had taint...` → missing toleration
+- `0/3 nodes are available: 3 pod has unbound PVC` → PVC not bound
+
+Check node resource availability:
+
+```bash
+kubectl describe nodes | grep -A 5 "Allocated resources"
+```
+
+### How to Fix
+
+**CPU/Memory shortage** — either reduce resource requests, or add more nodes:
+
+```yaml
+resources:
+  requests:
+    cpu: "100m"      # reduce from higher value
+    memory: "128Mi"
+```
+
+**Taint issues** — add the correct toleration to your Pod spec:
+
+```yaml
+tolerations:
+  - key: "node-role.kubernetes.io/control-plane"
+    operator: "Exists"
+    effect: "NoSchedule"
+```
+
+**PVC not bound** — check PVC status:
+
+```bash
+kubectl get pvc -n <namespace>
+kubectl describe pvc <pvc-name> -n <namespace>
+```
+
+---
+
+## 2. CrashLoopBackOff
+
+### What It Means
+
+Your container keeps starting, crashing, and Kubernetes keeps restarting it. After a few cycles, it enters `CrashLoopBackOff` — Kubernetes backs off exponentially before retrying.
+
+The container itself is the problem, not Kubernetes.
+
+### How to Diagnose
+
+Get the crash logs:
+
+```bash
+kubectl logs <pod-name> -n <namespace>
+```
+
+If the container already restarted, get logs from the previous run:
+
+```bash
+kubectl logs <pod-name> -n <namespace> --previous
+```
+
+Check the exit code:
+
+```bash
+kubectl describe pod <pod-name> -n <namespace>
+```
+
+Look for `Last State` → `Exit Code`. Common codes:
+- `1` → application error (check app logs)
+- `137` → OOMKilled (out of memory) or SIGKILL
+- `139` → segmentation fault
+- `143` → SIGTERM (graceful shutdown, usually fine)
+- `255` → process failed to start (check command/entrypoint)
+
+### How to Fix
+
+**Application crashing** — read the logs. It's almost always a missing env var, config file, or failed health check.
+
+**Exit code 137 (OOM)** — increase memory limit:
+
+```yaml
+resources:
+  limits:
+    memory: "512Mi"   # increase this
+  requests:
+    memory: "256Mi"
+```
+
+**Wrong command/entrypoint** — run an interactive shell to debug:
+
+```bash
+# Override the entrypoint temporarily
+kubectl run debug --image=your-image:tag --rm -it --restart=Never -- /bin/sh
+```
+
+**Liveness probe too aggressive** — the probe kills the container before it's ready:
+
+```yaml
+livenessProbe:
+  initialDelaySeconds: 30   # give app time to start
+  periodSeconds: 10
+  failureThreshold: 5       # allow more failures
+```
+
+---
+
+## 3. ImagePullBackOff / ErrImagePull
+
+### What It Means
+
+Kubernetes can't pull the container image. It tried, failed, and now it's backing off before retrying.
+
+`ErrImagePull` = first failure. `ImagePullBackOff` = repeated failures.
+
+### Why It Happens
+
+- Image tag doesn't exist in the registry
+- Wrong registry URL
+- Missing imagePullSecret for private registries
+- Network can't reach the registry from the node
+- Rate limiting (Docker Hub without auth)
+
+### How to Diagnose
+
+```bash
+kubectl describe pod <pod-name> -n <namespace>
+```
+
+Events will show exactly what failed:
+- `Failed to pull image "myapp:latest": rpc error...` → image doesn't exist
+- `unauthorized: authentication required` → missing or wrong credentials
+- `429 Too Many Requests` → Docker Hub rate limit
+
+### How to Fix
+
+**Wrong image tag** — verify the image exists:
+
+```bash
+# Check from inside a node
+docker pull your-image:tag
+
+# Or use crane/skopeo
+crane ls your-registry/your-image
+```
+
+**Private registry missing secret** — create the pull secret:
+
+```bash
+kubectl create secret docker-registry regcred \
+  --docker-server=<registry-url> \
+  --docker-username=<username> \
+  --docker-password=<password> \
+  --docker-email=<email> \
+  -n <namespace>
+```
+
+Then reference it in your Pod spec:
+
+```yaml
+spec:
+  imagePullSecrets:
+    - name: regcred
+  containers:
+    - name: myapp
+      image: private-registry.com/myapp:v1.0
+```
+
+**Docker Hub rate limiting** — authenticate with Docker Hub:
+
+```bash
+kubectl create secret docker-registry dockerhub-creds \
+  --docker-server=https://index.docker.io/v1/ \
+  --docker-username=<your-dockerhub-username> \
+  --docker-password=<your-dockerhub-token>
+```
+
+---
+
+## 4. OOMKilled (Out of Memory)
+
+### What It Means
+
+Your container exceeded its memory limit and the kernel killed it. This shows as exit code `137`.
+
+### How to Diagnose
+
+```bash
+kubectl describe pod <pod-name> -n <namespace>
+```
+
+You'll see:
+```
+Last State: Terminated
+  Reason: OOMKilled
+  Exit Code: 137
+```
+
+Check current memory usage before deciding the limit:
+
+```bash
+kubectl top pod <pod-name> -n <namespace>
+kubectl top nodes
+```
+
+### How to Fix
+
+**Increase the memory limit** — but first understand *why* it's using so much:
+
+```yaml
+resources:
+  requests:
+    memory: "256Mi"
+  limits:
+    memory: "1Gi"   # increase limit
+```
+
+**Fix a memory leak** — if the container keeps growing indefinitely, it's a code bug. Add monitoring (Prometheus + Grafana) to graph memory over time.
+
+**Java applications** — JVM doesn't respect container limits by default. Set heap size explicitly:
+
+```yaml
+env:
+  - name: JAVA_OPTS
+    value: "-Xms256m -Xmx512m"
+```
+
+Or use JVM container awareness flags:
+
+```yaml
+env:
+  - name: JAVA_TOOL_OPTIONS
+    value: "-XX:MaxRAMPercentage=75.0"
+```
+
+---
+
+## 5. Pod Stuck in `Terminating`
+
+### What It Means
+
+The Pod received a delete signal but isn't shutting down. It's stuck waiting for something — usually a finalizer or a slow graceful shutdown.
+
+### How to Diagnose
+
+```bash
+kubectl describe pod <pod-name> -n <namespace>
+```
+
+Check for `Finalizers` in the metadata section. If a finalizer is set but the controller managing it is gone, the Pod is stuck forever.
+
+### How to Fix
+
+**Force delete** — use this only when you're sure the Pod is truly stuck:
+
+```bash
+kubectl delete pod <pod-name> -n <namespace> --force --grace-period=0
+```
+
+**Remove stuck finalizers**:
+
+```bash
+kubectl patch pod <pod-name> -n <namespace> \
+  -p '{"metadata":{"finalizers":[]}}' \
+  --type=merge
+```
+
+**Slow graceful shutdown** — if your app takes too long to stop, increase the termination grace period:
+
+```yaml
+spec:
+  terminationGracePeriodSeconds: 120  # default is 30
+```
+
+Also make sure your app handles `SIGTERM` correctly and shuts down within the grace period.
+
+---
+
+## 6. Service Not Routing Traffic
+
+### What It Means
+
+Your Pod is Running, your Service exists, but traffic isn't reaching the container.
+
+### How to Diagnose
+
+**Step 1 — Check if Endpoints exist:**
+
+```bash
+kubectl get endpoints <service-name> -n <namespace>
+```
+
+If `ENDPOINTS` shows `<none>`, the Service selector doesn't match any Pod labels.
+
+**Step 2 — Verify selector matches Pod labels:**
+
+```bash
+kubectl get pods -n <namespace> --show-labels
+kubectl describe svc <service-name> -n <namespace>
+```
+
+Compare `Selector` in the Service with the Pod labels. They must match exactly.
+
+**Step 3 — Test from inside the cluster:**
+
+```bash
+kubectl run test --image=busybox --rm -it --restart=Never -- \
+  wget -O- http://<service-name>.<namespace>.svc.cluster.local:<port>
+```
+
+**Step 4 — Check NetworkPolicy:**
+
+```bash
+kubectl get networkpolicies -n <namespace>
+```
+
+A NetworkPolicy might be blocking traffic.
+
+### How to Fix
+
+**Selector mismatch** — fix the label:
+
+```yaml
+# Service selector
+selector:
+  app: myapp        # must match exactly
+
+# Pod label
+metadata:
+  labels:
+    app: myapp      # same key and value
+```
+
+**Wrong port** — `port` is what the Service exposes, `targetPort` is what the container listens on:
+
+```yaml
+spec:
+  ports:
+    - port: 80          # Service port (what clients use)
+      targetPort: 8080  # Container port (what the app listens on)
+```
+
+**NetworkPolicy blocking** — add an allow rule:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-app-traffic
+spec:
+  podSelector:
+    matchLabels:
+      app: myapp
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              role: frontend
+      ports:
+        - port: 8080
+```
+
+---
+
+## 7. Ingress Not Working
+
+### What It Means
+
+You have an Ingress resource but traffic isn't reaching your Service from outside the cluster.
+
+### How to Diagnose
+
+**Check if Ingress controller is running:**
+
+```bash
+kubectl get pods -n ingress-nginx
+# or
+kubectl get pods -n kube-system | grep ingress
+```
+
+**Check the Ingress resource:**
+
+```bash
+kubectl describe ingress <ingress-name> -n <namespace>
+```
+
+Look for `Address` — if empty, the Ingress controller hasn't assigned an IP yet.
+
+**Check Ingress controller logs:**
+
+```bash
+kubectl logs -n ingress-nginx deployment/ingress-nginx-controller
+```
+
+### How to Fix
+
+**No address assigned** — check if the LoadBalancer Service for the Ingress controller has an External IP:
+
+```bash
+kubectl get svc -n ingress-nginx
+```
+
+If it shows `<pending>`, your cloud provider isn't provisioning a load balancer (check cloud quota/config).
+
+**TLS certificate issues** — check cert-manager:
+
+```bash
+kubectl describe certificate <cert-name> -n <namespace>
+kubectl describe certificaterequest -n <namespace>
+```
+
+**Path not matching** — be explicit about pathType:
+
+```yaml
+rules:
+  - host: myapp.example.com
+    http:
+      paths:
+        - path: /
+          pathType: Prefix   # use Prefix, not Exact, for most cases
+          backend:
+            service:
+              name: myapp-svc
+              port:
+                number: 80
+```
+
+---
+
+## 8. Node in `NotReady` State
+
+### What It Means
+
+A node has stopped reporting to the control plane. Pods on that node will eventually be evicted and rescheduled elsewhere.
+
+### How to Diagnose
+
+```bash
+kubectl get nodes
+kubectl describe node <node-name>
+```
+
+In `Conditions`, look at the `Ready` condition. Common reasons:
+- `KubeletNotReady` → kubelet stopped
+- `NetworkPluginNotReady` → CNI plugin issue
+- `DiskPressure` → node running out of disk
+- `MemoryPressure` → node running out of memory
+- `PIDPressure` → too many processes
+
+**Check node conditions in detail:**
+
+```bash
+kubectl get node <node-name> -o json | jq '.status.conditions'
+```
+
+### How to Fix
+
+**SSH into the node** (if accessible) and check kubelet:
+
+```bash
+systemctl status kubelet
+journalctl -u kubelet -n 100
+```
+
+**Kubelet not running** — restart it:
+
+```bash
+systemctl restart kubelet
+```
+
+**Disk pressure** — clean up unused images and containers:
+
+```bash
+# On the node
+docker system prune -a
+# Or crictl (for containerd)
+crictl rmi --prune
+```
+
+**Out of inodes** (often confused with disk space):
+
+```bash
+df -i   # check inode usage
+```
+
+**Memory pressure** — find memory-hungry processes:
+
+```bash
+ps aux --sort=-%mem | head -20
+```
+
+---
+
+## 9. PersistentVolumeClaim Stuck in `Pending`
+
+### What It Means
+
+Your PVC can't find a PersistentVolume to bind to. No storage has been provisioned.
+
+### How to Diagnose
+
+```bash
+kubectl describe pvc <pvc-name> -n <namespace>
+```
+
+Common messages:
+- `no persistent volumes available...` → no PV matches
+- `storageclass.storage.k8s.io "fast" not found` → wrong StorageClass name
+- `waiting for a volume to be created...` → dynamic provisioner is working (just wait)
+
+Check available StorageClasses:
+
+```bash
+kubectl get storageclass
+```
+
+Check existing PVs:
+
+```bash
+kubectl get pv
+```
+
+### How to Fix
+
+**Wrong StorageClass name** — use the exact name from `kubectl get storageclass`:
+
+```yaml
+spec:
+  storageClassName: standard   # must match exactly
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+```
+
+**No default StorageClass** — set one as default:
+
+```bash
+kubectl patch storageclass <name> \
+  -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+```
+
+**AccessMode mismatch** — EBS volumes only support `ReadWriteOnce`. NFS supports `ReadWriteMany`:
+
+```yaml
+accessModes:
+  - ReadWriteOnce   # for cloud block storage (AWS EBS, GCE PD)
+  # - ReadWriteMany # for NFS or cloud file storage
+```
+
+---
+
+## 10. DNS Resolution Failures
+
+### What It Means
+
+Pods can't resolve service names. `myservice.default.svc.cluster.local` returns no answer.
+
+### How to Diagnose
+
+**Run a DNS test Pod:**
+
+```bash
+kubectl run dnstest --image=busybox --rm -it --restart=Never -- \
+  nslookup kubernetes.default.svc.cluster.local
+```
+
+**Check CoreDNS is running:**
+
+```bash
+kubectl get pods -n kube-system -l k8s-app=kube-dns
+kubectl logs -n kube-system -l k8s-app=kube-dns
+```
+
+**Check CoreDNS ConfigMap:**
+
+```bash
+kubectl get configmap coredns -n kube-system -o yaml
+```
+
+### How to Fix
+
+**CoreDNS Pod not running** — restart it:
+
+```bash
+kubectl rollout restart deployment/coredns -n kube-system
+```
+
+**Custom DNS config in Pod** — sometimes apps override DNS. Ensure your Pod uses cluster DNS:
+
+```yaml
+spec:
+  dnsPolicy: ClusterFirst   # default, ensures cluster DNS is used
+```
+
+**ndots setting** — if short names don't resolve, check `/etc/resolv.conf` inside the Pod:
+
+```bash
+kubectl exec <pod-name> -- cat /etc/resolv.conf
+```
+
+---
+
+## 11. HorizontalPodAutoscaler Not Scaling
+
+### What It Means
+
+Your HPA exists but the replica count isn't changing even under load.
+
+### How to Diagnose
+
+```bash
+kubectl describe hpa <hpa-name> -n <namespace>
+```
+
+Look for:
+- `unable to get metrics for resource cpu` → metrics-server not installed
+- `the HPA was unable to compute the replica count` → metric fetch failed
+- Current vs desired replica count
+
+Check metrics-server:
+
+```bash
+kubectl get pods -n kube-system | grep metrics-server
+kubectl top pods -n <namespace>
+```
+
+### How to Fix
+
+**Metrics server not installed** — install it:
+
+```bash
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+```
+
+**Metrics server failing on TLS** — add `--kubelet-insecure-tls` flag (dev only):
+
+```yaml
+args:
+  - --kubelet-insecure-tls
+```
+
+**No resource requests set** — HPA needs `requests.cpu` to calculate utilization:
+
+```yaml
+resources:
+  requests:
+    cpu: "100m"   # REQUIRED for CPU-based HPA
+```
+
+**HPA and Deployment replicas conflict** — if you set `replicas` in Deployment AND use HPA, HPA will fight with you. Remove `replicas` from Deployment manifest once HPA is active.
+
+---
+
+## 12. RBAC Permission Denied
+
+### What It Means
+
+A Pod or user is getting `403 Forbidden` or `Error from server (Forbidden)` when trying to access the Kubernetes API.
+
+### How to Diagnose
+
+```bash
+# Check what a ServiceAccount can do
+kubectl auth can-i list pods \
+  --as=system:serviceaccount:<namespace>:<serviceaccount-name> \
+  -n <namespace>
+
+# List all permissions of a role
+kubectl describe role <role-name> -n <namespace>
+kubectl describe clusterrole <clusterrole-name>
+
+# Check what's bound to a ServiceAccount
+kubectl get rolebindings,clusterrolebindings -A | grep <serviceaccount-name>
+```
+
+### How to Fix
+
+**Create a Role with the required permissions:**
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pod-reader
+  namespace: production
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/logs"]
+    verbs: ["get", "list", "watch"]
+```
+
+**Bind the Role to a ServiceAccount:**
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pod-reader-binding
+  namespace: production
+subjects:
+  - kind: ServiceAccount
+    name: myapp-sa
+    namespace: production
+roleRef:
+  kind: Role
+  name: pod-reader
+  apiGroup: rbac.authorization.k8s.io
+```
+
+**Never use wildcard verbs in production** (`verbs: ["*"]`) — grant only what the application actually needs.
+
+---
+
+## Quick Reference: kubectl Diagnostic Commands
+
+Here's a cheat sheet for when you're in the middle of an incident:
+
+```bash
+# Pod status and events
+kubectl get pods -n <ns> -o wide
+kubectl describe pod <pod> -n <ns>
+kubectl logs <pod> -n <ns> --previous
+
+# Node status
+kubectl get nodes -o wide
+kubectl describe node <node>
+kubectl top nodes
+
+# Service and endpoints
+kubectl get svc,endpoints -n <ns>
+
+# Check all resources in a namespace
+kubectl get all -n <ns>
+
+# Follow logs in real time
+kubectl logs -f <pod> -n <ns>
+
+# Execute commands inside running container
+kubectl exec -it <pod> -n <ns> -- /bin/sh
+
+# Port-forward to debug locally
+kubectl port-forward pod/<pod> 8080:8080 -n <ns>
+
+# Get events sorted by time
+kubectl get events -n <ns> --sort-by='.lastTimestamp'
+
+# Check resource usage
+kubectl top pods -n <ns> --sort-by=memory
+
+# Dry run — test manifests without applying
+kubectl apply -f deployment.yaml --dry-run=client
+
+# View diff before applying changes
+kubectl diff -f deployment.yaml
+```
+
+---
+
+## Debugging Strategy: The 5-Step Method
+
+When something breaks and you don't know where to start:
+
+**Step 1 — What's broken?**
+```bash
+kubectl get pods,svc,ingress -n <namespace>
+```
+Find what's in a bad state.
+
+**Step 2 — What's the error?**
+```bash
+kubectl describe <resource> <name> -n <namespace>
+```
+Read the Events section. The answer is usually there.
+
+**Step 3 — What do the logs say?**
+```bash
+kubectl logs <pod> -n <namespace> --previous
+```
+Application logs contain the real error.
+
+**Step 4 — Can I reach it?**
+```bash
+kubectl port-forward pod/<pod> 8080:8080 -n <namespace>
+curl localhost:8080/health
+```
+Test connectivity directly.
+
+**Step 5 — What changed?**
+```bash
+kubectl rollout history deployment/<name> -n <namespace>
+kubectl rollout undo deployment/<name> -n <namespace>
+```
+If it was working before, roll back.
+
+---
+
+## Prevention: The 5 Things That Prevent 90% of Incidents
+
+Most Kubernetes incidents are caused by the same mistakes:
+
+1. **Always set resource requests and limits** — without them, Pods steal resources and cause cascading failures
+2. **Use liveness and readiness probes** — Kubernetes can't heal what it can't detect
+3. **Never use `:latest` in production** — pin image versions for reproducible deployments
+4. **Set Pod Disruption Budgets** — prevent all replicas from being evicted at once during node drains
+5. **Monitor with Prometheus + Grafana** — know about problems before your users do
+
+---
+
+Kubernetes troubleshooting is a skill you build over time. Every incident teaches you something. Save this guide, run the commands, read the errors carefully — and most problems reveal themselves within minutes.
+
+Got a specific error not covered here? Reach out at [hello@devopsboys.com](mailto:hello@devopsboys.com).

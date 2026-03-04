@@ -147,9 +147,6 @@ export function Navbar() {
           >
             <Gamepad2 className="h-3.5 w-3.5" />
             Games
-            <span className="px-1.5 py-0.5 rounded-full bg-red-500/20 border border-red-500/30 text-red-400 text-[10px] font-bold leading-none">
-              AI
-            </span>
           </Link>
 
           {/* Shop — special pill */}
@@ -212,7 +209,7 @@ export function Navbar() {
                     >
                       {link.label}
                       {link.href === "/games" && (
-                        <span className="ml-2 px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 text-[10px] font-bold">AI</span>
+                        <span className="ml-2 px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 text-[10px] font-bold">NEW</span>
                       )}
                       {link.href === "/shop" && (
                         <span className="ml-2 px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">NEW</span>
