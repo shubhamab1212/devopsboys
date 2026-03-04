@@ -22,6 +22,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   turbopack: {},
+  serverExternalPackages: ["@anthropic-ai/sdk"],
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },
