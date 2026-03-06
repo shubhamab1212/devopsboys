@@ -211,8 +211,8 @@ const categories: Category[] = [
     tools: [
       {
         name: "KodeKloud",
-        description: "Hands-on labs for Kubernetes, Docker, Terraform, and DevOps. Best for practical learning.",
-        href: "https://kodekloud.com",
+        description: "Hands-on labs for Kubernetes, Docker, Terraform, Linux, and DevOps. The best platform for practical, job-ready skills.",
+        href: "https://tidd.ly/4d60alA",
         badge: "Highly Recommended",
         badgeColor: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
         affiliate: true,
