@@ -67,6 +67,15 @@ export default function RootLayout({
         className={`${plusJakartaSans.variable} ${jetbrainsMono.variable} antialiased min-h-screen flex flex-col`}
       >
         <GoogleAnalytics />
+        {/* Global animated gradient orbs — visible on every page */}
+        <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden" aria-hidden="true">
+          <div className="animate-float absolute -top-40 -left-40 w-[700px] h-[700px] rounded-full bg-gradient-to-br from-blue-500/20 to-violet-500/12 blur-[100px]" />
+          <div className="animate-float-delayed absolute -top-20 -right-20 w-[550px] h-[550px] rounded-full bg-gradient-to-bl from-cyan-400/18 to-sky-500/10 blur-[90px]" />
+          <div className="animate-float-slow absolute top-[35%] -left-32 w-[500px] h-[500px] rounded-full bg-gradient-to-r from-violet-500/14 to-indigo-500/10 blur-[90px]" />
+          <div className="animate-float absolute top-[55%] -right-20 w-[550px] h-[550px] rounded-full bg-gradient-to-l from-emerald-400/14 to-teal-500/8 blur-[100px]" />
+          <div className="animate-float-delayed absolute top-[75%] left-1/4 w-[600px] h-[450px] rounded-full bg-gradient-to-t from-orange-400/12 to-amber-500/8 blur-[110px]" />
+          <div className="animate-float-slow absolute bottom-0 -left-20 w-[500px] h-[500px] rounded-full bg-gradient-to-tr from-blue-500/16 to-indigo-500/10 blur-[90px]" />
+        </div>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
