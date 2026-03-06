@@ -1,0 +1,393 @@
+---
+title: "Linux Commands Every DevOps Engineer Must Know (2026)"
+description: "The complete Linux command reference for DevOps engineers in 2026. Master file management, process control, networking, system monitoring, SSH, permissions, and shell scripting with real-world examples."
+date: 2026-03-06
+tags: ["devops", "linux", "cloud", "beginners"]
+published: true
+---
+
+Linux is the operating system that runs the internet.
+
+AWS EC2 instances, Kubernetes nodes, Docker containers, CI/CD runners — almost all of them run on Linux. If you are a DevOps engineer who is not comfortable on the command line, you are working with one hand tied behind your back.
+
+This guide covers the Linux commands you will actually use on the job — not a textbook dump, but the commands that appear in real incidents, real automation scripts, and real production environments.
+
+## Why Linux Proficiency Matters in 2026
+
+Cloud dashboards and Kubernetes UIs are useful, but you will eventually need to SSH into a server. A container will crash, a process will eat all the CPU, or a disk will fill up at 2 AM — and you need to diagnose and fix it fast.
+
+The engineers who navigate Linux confidently are the ones who resolve incidents faster, write better automation, and understand their infrastructure at a deeper level. This is not optional knowledge for a DevOps role — it is the foundation everything else is built on.
+
+## Navigating the File System
+
+These are the commands you will use every single time you open a terminal:
+
+```bash
+# Where am I right now?
+pwd
+
+# What is in this directory?
+ls
+ls -la          # detailed list including hidden files
+ls -lh          # human-readable file sizes (KB, MB instead of bytes)
+
+# Move around
+cd /var/log
+cd ~            # go to your home directory
+cd -            # go back to previous directory
+
+# Find files by name or property
+find /etc -name "*.conf"
+find /var/log -newer /tmp/ref -type f
+find . -size +100M           # files larger than 100MB
+find /opt -name "app.jar" -mtime -7   # modified in last 7 days
+```
+
+The `find` command is one of the most powerful tools on Linux. Learn it well — it will save you hours when you are hunting for a config file buried somewhere in `/etc` or tracking down a large file eating your disk.
+
+## Reading and Searching Files
+
+```bash
+# Read files
+cat /etc/hostname
+less /var/log/syslog      # read large files page by page (q to quit)
+
+# Read just the beginning or end
+head -n 50 /var/log/app.log
+tail -n 100 /var/log/app.log
+tail -f /var/log/app.log   # follow in real-time — essential for debugging
+
+# Search inside files
+grep "ERROR" /var/log/app.log
+grep -r "database" /etc/          # recursive search through directories
+grep -i "error" /var/log/app.log  # case-insensitive
+grep -n "connection refused" /var/log/nginx/error.log  # show line numbers
+
+# Count how many times something appears
+grep -c "ERROR" /var/log/app.log
+```
+
+`tail -f` is something you will use almost every day. When debugging a live application, watching the logs scroll in real-time is often the fastest way to understand what is happening. Combine it with `grep` for filtering:
+
+```bash
+tail -f /var/log/app.log | grep ERROR
+```
+
+## File and Directory Operations
+
+```bash
+# Create directories and files
+mkdir -p /opt/myapp/config    # -p creates all parent directories too
+touch newfile.txt
+
+# Copy, move, rename, delete
+cp -r /etc/nginx /backup/nginx-$(date +%Y%m%d)   # timestamped backup
+mv oldname.conf newname.conf
+rm -rf /tmp/old-build                              # careful with this one
+
+# Disk usage — critical when storage is an issue
+df -h                           # disk space on all filesystems
+du -sh /var/log/               # total size of a directory
+du -sh /* | sort -h            # find what is eating your disk, sorted by size
+```
+
+`du -sh /* | sort -h` is a lifesaver when a disk fills up unexpectedly. Run it on the root, find the large directory, then drill down. You will find the culprit in under a minute.
+
+## Permissions: Understanding Who Can Do What
+
+Permissions are one of the most misunderstood parts of Linux. Here is the mental model:
+
+Every file has three permission sets:
+- **Owner** — the user who owns the file
+- **Group** — users in the same group
+- **Others** — everyone else
+
+Each set has three permission types: **read (r=4)**, **write (w=2)**, **execute (x=1)**
+
+```bash
+# View permissions
+ls -la
+# Output: -rwxr-xr-- 1 ubuntu ubuntu 4096 Mar 6 10:00 script.sh
+# Breakdown:  owner=rwx, group=r-x, others=r--
+
+# Change permissions using numeric mode
+chmod 755 script.sh      # rwxr-xr-x — standard for scripts
+chmod 644 file.txt       # rw-r--r-- — standard for files
+chmod 600 ~/.ssh/id_rsa  # rw------- — required for SSH private keys
+
+# Add execute permission for everyone
+chmod +x deploy.sh
+
+# Change file ownership
+chown ubuntu:ubuntu /opt/myapp
+chown -R www-data:www-data /var/www/html
+```
+
+The most important permission rules for DevOps work:
+- SSH private keys **must** be `600` — SSH will refuse to use them otherwise
+- Executable scripts need `+x` permission
+- Web server files are usually owned by `www-data` or `nginx`
+
+## Process Management
+
+When something is eating your CPU or memory, you need to find it and handle it:
+
+```bash
+# See all running processes
+ps aux
+ps aux | grep nginx           # find a specific process
+
+# Interactive process viewers
+top                           # built-in, shows CPU and memory in real-time
+htop                          # better interface, install separately
+
+# Kill processes
+kill PID                      # graceful shutdown (SIGTERM — gives the process time to clean up)
+kill -9 PID                   # force kill (SIGKILL — no cleanup, last resort)
+pkill nginx                   # kill by process name
+killall python3               # kill all processes matching this name
+
+# Run a process that survives after you log out
+nohup ./long-running-script.sh &
+```
+
+When a process will not die with regular `kill`, use `kill -9`. But use it carefully — the process has no chance to clean up, close database connections, or write to disk. Always try regular `kill` first.
+
+## Monitoring System Resources
+
+```bash
+# Memory overview
+free -h                        # current memory usage with human-readable sizes
+
+# System load
+uptime                         # load average for last 1, 5, and 15 minutes
+
+# If load average exceeds your CPU core count, you have a bottleneck
+
+# Disk I/O
+iostat -xz 1                  # disk utilization (requires sysstat package)
+iotop                          # which processes are doing the most I/O
+
+# Network connections and listening ports
+ss -tlnp                      # listening TCP ports with the process using them
+lsof -i :8080                 # what process is using port 8080
+
+# Quick system information
+cat /proc/cpuinfo              # CPU model, cores, speed
+cat /proc/meminfo              # detailed memory breakdown
+uname -a                       # kernel version and system architecture
+```
+
+When a server feels slow, the first thing to check is `uptime`. If the load average over the last 5 minutes is higher than the number of CPU cores, something is saturating the CPU. Then use `top` or `htop` to find the culprit.
+
+## Networking Commands
+
+```bash
+# Basic connectivity
+ping google.com
+curl -I https://devopsboys.com             # check HTTP response headers
+curl -o /dev/null -sw "%{http_code}" http://localhost:3000   # just the status code
+
+# DNS
+nslookup devopsboys.com
+dig devopsboys.com
+dig @8.8.8.8 devopsboys.com              # query a specific DNS server
+
+# Network interfaces and routing
+ip addr show                              # all network interfaces and IPs
+ip route show                             # routing table
+
+# Test if a port is reachable
+telnet db.internal 5432                  # test TCP connection (Ctrl+] then quit)
+nc -zv redis.internal 6379              # netcat port check (cleaner output)
+```
+
+`curl -o /dev/null -sw "%{http_code}" URL` is a compact way to check if a service is responding with the right status code. You will use this constantly in health check scripts and deployment verification.
+
+## SSH: Remote Access Done Right
+
+SSH is how you access every remote server, cloud instance, and bastion host in a DevOps environment:
+
+```bash
+# Basic SSH
+ssh ubuntu@10.0.0.100
+ssh -i ~/.ssh/mykey.pem ubuntu@ec2-1-2-3-4.compute.amazonaws.com
+
+# SSH tunneling — access a remote service locally
+ssh -L 5432:db.internal:5432 ubuntu@bastion.example.com
+# Now: psql -h localhost -p 5432 ... connects through the tunnel to db.internal
+
+# Copy files securely
+scp -i key.pem file.txt ubuntu@server:/tmp/
+rsync -av --progress ./dist/ ubuntu@server:/opt/app/
+
+# SSH config file — saves you from typing long commands every time
+# Add to ~/.ssh/config:
+Host myserver
+  HostName ec2-1-2-3-4.compute.amazonaws.com
+  User ubuntu
+  IdentityFile ~/.ssh/mykey.pem
+
+# Now just:
+ssh myserver
+```
+
+Set up `~/.ssh/config` for every server or bastion you access regularly. It eliminates mistakes and saves enormous time. The `rsync` command with `--progress` is especially useful for deploying files — it only copies what has changed, unlike `scp` which copies everything.
+
+## Text Processing: awk, sed, cut
+
+These three commands let you manipulate text output from any command — essential for parsing logs, extracting fields from config files, and building scripts:
+
+```bash
+# cut — extract specific columns from delimited output
+cat /etc/passwd | cut -d: -f1         # get all usernames (field 1, delimiter :)
+echo "192.168.1.100" | cut -d. -f4   # extract last octet
+
+# awk — process fields, do math, filter rows
+df -h | awk '{print $1, $5}'                            # print filesystem and usage%
+ps aux | awk '$3 > 50 {print $1, $2, $3}'              # processes using over 50% CPU
+
+# sed — find and replace in text streams and files
+sed 's/old_value/new_value/g' config.txt               # output to stdout
+sed -i 's/DEBUG=true/DEBUG=false/g' .env              # in-place replacement
+sed -n '100,200p' large-file.txt                       # print only lines 100 to 200
+```
+
+Real power comes from chaining these with pipes:
+
+```bash
+# Count how many times each IP appears in your access log
+grep "GET /api" access.log | awk '{print $1}' | sort | uniq -c | sort -rn | head -20
+```
+
+This single line gives you your top 20 API callers by IP address. That is the kind of one-liner that solves a real problem in under 10 seconds.
+
+## Useful One-Liners for DevOps Work
+
+```bash
+# Watch a command refresh every 2 seconds
+watch -n 2 "docker ps"
+watch -n 1 "kubectl get pods -n production"
+
+# Find the 10 largest files anywhere on the system
+find / -type f -printf '%s %p\n' 2>/dev/null | sort -rn | head -10
+
+# Count lines in a file
+wc -l /var/log/app.log
+
+# Get the server's public IP address
+curl -s ifconfig.me
+
+# Check when an SSL certificate expires
+echo | openssl s_client -connect devopsboys.com:443 2>/dev/null | openssl x509 -noout -dates
+
+# Create and extract archives
+tar -czf backup.tar.gz /opt/myapp/        # create compressed archive
+tar -xzf backup.tar.gz -C /opt/restore/  # extract to a specific directory
+
+# Base64 (used constantly with Kubernetes secrets)
+echo "mysecret" | base64
+echo "bXlzZWNyZXQ=" | base64 --decode
+```
+
+## Environment Variables and Shell Scripting
+
+```bash
+# Set variables for the current session
+export DATABASE_URL="postgresql://user:pass@localhost/db"
+export PATH=$PATH:/usr/local/myapp/bin
+
+# Load variables from a file
+source .env
+. .env            # shorthand, same thing
+
+# Check if a variable is set
+echo $DATABASE_URL
+env | grep DATABASE    # list all environment variables matching DATABASE
+```
+
+For shell scripts, always start with these safety options:
+
+```bash
+#!/bin/bash
+set -euo pipefail
+# -e: exit immediately if any command fails
+# -u: treat unset variables as errors
+# -o pipefail: catch errors in piped commands too
+
+APP_DIR="/opt/myapp"
+LOG_FILE="/var/log/deploy.log"
+
+echo "Deployment started at $(date)" | tee -a "$LOG_FILE"
+```
+
+`set -euo pipefail` is the single most important thing you can add to any shell script. Without it, scripts silently continue past errors and leave you debugging mysterious states. With it, the script stops at the first sign of trouble.
+
+## Scheduling Tasks with Cron
+
+```bash
+# Edit your user's crontab
+crontab -e
+
+# Cron format:
+# minute  hour  day  month  weekday  command
+# (0-59) (0-23) (1-31) (1-12) (0-7, 0=Sunday)
+
+# Examples:
+0 2 * * *     /opt/scripts/backup.sh           # daily at 2 AM
+*/5 * * * *   /opt/scripts/health-check.sh     # every 5 minutes
+0 9 * * 1     /opt/scripts/weekly-report.sh    # every Monday at 9 AM
+0 0 1 * *     /opt/scripts/monthly-cleanup.sh  # first day of every month
+
+# View your current crontab
+crontab -l
+
+# System-wide cron jobs
+ls /etc/cron.d/
+ls /etc/cron.daily/
+```
+
+## Package Management
+
+```bash
+# Ubuntu / Debian
+apt update
+apt install nginx htop curl jq
+apt remove nginx
+apt list --installed | grep nginx
+
+# CentOS / RHEL / Amazon Linux
+yum update
+yum install nginx
+dnf install nginx       # newer systems use dnf
+
+# Install without interactive confirmation (for scripts)
+apt install -y nginx
+
+# Verify a package is installed correctly
+which nginx
+nginx -v
+```
+
+## Recommended Course
+
+If you want to become truly fluent in Linux — understanding how processes work, how the filesystem is structured, how networking flows, and how to write reliable shell scripts — [Linux Mastery: Master the Linux Command Line](https://trk.udemy.com/NGk4QV) on Udemy is one of the most practical and beginner-friendly courses available. It is the fastest path from knowing a few commands to actually thinking like a Linux engineer.
+
+## Summary
+
+Linux mastery is not about memorizing every flag of every command. It is about knowing which tool to reach for in a situation, and being fast enough to use it when things are going wrong at 2 AM.
+
+The commands that matter most day-to-day:
+
+- **Navigation**: `ls`, `cd`, `find`, `grep`
+- **Files**: `cat`, `tail -f`, `less`, `cp`, `mv`, `rm`, `du`, `df`
+- **Processes**: `ps aux`, `top`, `kill`, `htop`
+- **Monitoring**: `free -h`, `uptime`, `ss -tlnp`, `iostat`
+- **Networking**: `curl`, `ping`, `dig`, `ssh`
+- **Text processing**: `awk`, `sed`, `cut`, `sort`, `uniq`
+
+The best way to build this muscle memory: spin up a cheap cloud VM and use it daily. Break things. Fix them. Every time you are tempted to click through a UI, do it on the command line instead.
+
+---
+
+*Found this helpful? Share it with your team. Questions or feedback? [hello@devopsboys.com](mailto:hello@devopsboys.com)*

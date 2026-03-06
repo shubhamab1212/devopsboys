@@ -1,0 +1,513 @@
+---
+title: "Prometheus & Grafana Monitoring Complete Guide 2026"
+description: "Learn how to set up Prometheus and Grafana from scratch in 2026. Covers metrics collection, PromQL queries, alerting rules, Alertmanager, Grafana dashboards, and Kubernetes monitoring with kube-prometheus-stack."
+date: 2026-03-06
+tags: ["devops", "kubernetes", "cloud", "monitoring"]
+published: true
+---
+
+You cannot manage what you cannot measure.
+
+In production, something will always go wrong. The question is whether you find out from your monitoring system — or from a customer who could not complete a purchase. Prometheus and Grafana are the industry-standard open-source tools that give you full visibility across your entire infrastructure before problems become incidents.
+
+This guide explains not just how to set them up, but why they work the way they do — so you can use them effectively when things break.
+
+## What is Prometheus?
+
+Prometheus is a **monitoring and alerting system** built specifically for cloud-native infrastructure. It was originally created at SoundCloud in 2012 and is now part of the Cloud Native Computing Foundation (CNCF) — the same organization that governs Kubernetes.
+
+The core idea is simple: Prometheus **scrapes metrics** from your applications and infrastructure on a regular interval (typically every 15 seconds). Instead of your services pushing data to a central server, Prometheus pulls data from them.
+
+This pull-based model has important advantages:
+
+- Prometheus immediately knows if a target is down — it just fails to scrape
+- Your services do not need to know where the monitoring server lives
+- New services can be discovered automatically through service discovery
+
+## What is Grafana?
+
+Grafana is a **visualization and dashboarding platform**. It does not collect metrics — it reads them from data sources like Prometheus and transforms them into interactive dashboards.
+
+Think of it this way: Prometheus is the database, Grafana is the UI.
+
+Grafana lets you:
+- Create dashboards with graphs, gauges, heatmaps, and tables
+- Set up alerts that notify you via Slack, PagerDuty, email, and more
+- Explore metrics interactively without writing any dashboard config upfront
+
+Together, Prometheus and Grafana form the monitoring stack used by thousands of companies, from early-stage startups to enterprises running hundreds of services.
+
+## Understanding Metrics: The Four Types
+
+Before setting anything up, you need to understand the four types of metrics in Prometheus. This knowledge directly affects which queries you write and how you interpret the data.
+
+**Counter** — A value that only ever goes up. It never decreases (unless it resets after a restart). Examples: total HTTP requests served, total errors encountered, total bytes sent. To understand the current rate, you look at how fast the counter is increasing over time.
+
+**Gauge** — A value that can go up or down freely. Examples: current CPU usage percentage, current memory used, current number of active connections, current temperature. A gauge represents a snapshot of the present state.
+
+**Histogram** — Tracks how values are distributed across configurable buckets. Examples: how many HTTP requests took 0–10ms, how many took 10–50ms, how many took 50–100ms. Histograms let you calculate percentiles like p95 and p99 latency, which are far more useful than averages.
+
+**Summary** — Similar to histogram but calculates percentiles on the client side. Less commonly used today — histograms are preferred because they can be aggregated across multiple instances.
+
+Understanding these types is critical because they determine which PromQL functions you use to query them correctly.
+
+## Setting Up Prometheus and Grafana with Docker Compose
+
+The fastest way to get started locally is Docker Compose. Here is a complete, working setup:
+
+Create your project structure:
+
+```bash
+mkdir prometheus-grafana && cd prometheus-grafana
+mkdir -p prometheus/rules grafana/provisioning/datasources
+```
+
+Create `prometheus/prometheus.yml`:
+
+```yaml
+global:
+  scrape_interval: 15s       # how often to collect metrics from each target
+  evaluation_interval: 15s   # how often to evaluate alert rules
+
+rule_files:
+  - "rules/*.yml"            # load alert rules from this directory
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+scrape_configs:
+  # Prometheus monitors itself
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Node Exporter for system metrics
+  - job_name: "node"
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+  # Your application (replace with your service)
+  - job_name: "myapp"
+    static_configs:
+      - targets: ["app:3000"]
+    metrics_path: /metrics
+```
+
+Create `docker-compose.yml`:
+
+```yaml
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=15d'
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - "9100:9100"
+    networks:
+      - monitoring
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    ports:
+      - "9093:9093"
+    networks:
+      - monitoring
+
+volumes:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  monitoring:
+```
+
+Start everything:
+
+```bash
+docker compose up -d
+```
+
+You now have:
+- **Prometheus** at http://localhost:9090
+- **Grafana** at http://localhost:3000 (admin / admin123)
+- **Node Exporter metrics** at http://localhost:9100/metrics
+- **Alertmanager** at http://localhost:9093
+
+## Node Exporter: System Metrics for Free
+
+Node Exporter is a Prometheus exporter that exposes Linux system metrics — CPU, memory, disk, network — in a format Prometheus understands. You run one Node Exporter per server.
+
+Once Prometheus is scraping it, you get hundreds of metrics automatically:
+
+```
+node_cpu_seconds_total           — CPU time in different modes (idle, user, system, iowait)
+node_memory_MemFree_bytes        — free memory
+node_memory_MemAvailable_bytes   — memory available for new processes
+node_disk_io_time_seconds_total  — time spent doing disk I/O
+node_filesystem_avail_bytes      — available disk space per mount point
+node_network_receive_bytes_total — bytes received on each network interface
+```
+
+No code changes to your application are needed for these. Node Exporter handles everything at the OS level.
+
+## Writing PromQL Queries
+
+PromQL (Prometheus Query Language) is what you use to query and transform metrics. It looks intimidating at first but follows logical patterns.
+
+**Basic queries:**
+
+```promql
+# All CPU data across all cores and modes
+node_cpu_seconds_total
+
+# Filter by label — only idle mode
+node_cpu_seconds_total{mode="idle"}
+
+# Rate of change — per-second rate over a 5-minute window
+rate(node_cpu_seconds_total{mode="idle"}[5m])
+```
+
+**CPU usage percentage:**
+
+```promql
+# 100% minus the idle percentage = how much CPU is being used
+100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+```
+
+**Memory usage:**
+
+```promql
+# Available memory as a percentage of total
+(node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100
+
+# Memory usage percentage
+(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100
+```
+
+**HTTP application metrics** (using the standard `http_requests_total` counter):
+
+```promql
+# Requests per second
+rate(http_requests_total[5m])
+
+# Error rate — requests with 5xx status codes
+rate(http_requests_total{status=~"5.."}[5m])
+
+# Error percentage
+rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) * 100
+
+# p99 latency from a histogram metric
+histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m]))
+```
+
+The `rate()` function is the most important function in PromQL. It takes a counter (which always increases) and converts it into a per-second rate of change over a time window. You will use it for almost every counter metric.
+
+## Adding Metrics to Your Application
+
+Prometheus works best when your application exposes a `/metrics` endpoint. Official client libraries exist for every major language:
+
+**Node.js with Express:**
+
+```javascript
+const client = require('prom-client');
+const express = require('express');
+const app = express();
+
+// Collect default Node.js metrics (memory, event loop, etc.)
+const collectDefaultMetrics = client.collectDefaultMetrics;
+collectDefaultMetrics();
+
+// Custom counter for HTTP requests
+const httpRequestsTotal = new client.Counter({
+  name: 'http_requests_total',
+  help: 'Total number of HTTP requests',
+  labelNames: ['method', 'path', 'status'],
+});
+
+// Custom histogram for request duration
+const httpRequestDuration = new client.Histogram({
+  name: 'http_request_duration_seconds',
+  help: 'HTTP request duration in seconds',
+  labelNames: ['method', 'path'],
+  buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5],
+});
+
+// Middleware to track all requests
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = (Date.now() - start) / 1000;
+    httpRequestsTotal.inc({ method: req.method, path: req.path, status: res.statusCode });
+    httpRequestDuration.observe({ method: req.method, path: req.path }, duration);
+  });
+  next();
+});
+
+// Expose the /metrics endpoint
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', client.register.contentType);
+  res.end(await client.register.metrics());
+});
+```
+
+**Python with Flask:**
+
+```python
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from flask import Flask, Response
+import time
+
+app = Flask(__name__)
+
+REQUEST_COUNT = Counter(
+    'http_requests_total',
+    'Total HTTP requests',
+    ['method', 'endpoint', 'status']
+)
+
+REQUEST_LATENCY = Histogram(
+    'http_request_duration_seconds',
+    'HTTP request latency',
+    ['method', 'endpoint']
+)
+
+@app.before_request
+def start_timer():
+    g.start = time.time()
+
+@app.after_request
+def record_request_data(response):
+    latency = time.time() - g.start
+    REQUEST_COUNT.labels(request.method, request.path, response.status_code).inc()
+    REQUEST_LATENCY.labels(request.method, request.path).observe(latency)
+    return response
+
+@app.route('/metrics')
+def metrics():
+    return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
+```
+
+## Setting Up Alert Rules
+
+Prometheus evaluates alert rules continuously and fires an alert when a condition is true. Create `prometheus/rules/alerts.yml`:
+
+```yaml
+groups:
+  - name: system.rules
+    rules:
+      - alert: HighCPUUsage
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value | humanizePercentage }} (threshold: 85%)"
+
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High memory on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value | humanizePercentage }}"
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: "Only {{ $value | humanize }}% disk space remaining on /"
+
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.job }} is down"
+          description: "{{ $labels.instance }} has been unreachable for more than 1 minute"
+
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate on {{ $labels.job }}"
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+```
+
+The `for` field is important — it means the condition must be continuously true for that duration before the alert fires. This prevents false alarms from brief spikes that self-resolve within seconds.
+
+## Configuring Alertmanager for Slack Notifications
+
+Alertmanager receives alerts from Prometheus and routes them to the right notification channels. Create `alertmanager.yml`:
+
+```yaml
+global:
+  resolve_timeout: 5m
+  slack_api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+
+route:
+  group_by: ['alertname', 'severity']
+  group_wait: 30s          # wait before sending the first notification (groups alerts)
+  group_interval: 10m      # wait before sending a new notification for a group
+  repeat_interval: 1h      # resend if still firing after this duration
+  receiver: 'slack-warnings'
+
+  routes:
+    - match:
+        severity: critical
+      receiver: 'slack-critical'
+      repeat_interval: 15m
+
+receivers:
+  - name: 'slack-critical'
+    slack_configs:
+      - channel: '#alerts-critical'
+        title: '🚨 {{ .CommonAnnotations.summary }}'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+        send_resolved: true
+
+  - name: 'slack-warnings'
+    slack_configs:
+      - channel: '#alerts-warnings'
+        title: '⚠️ {{ .CommonAnnotations.summary }}'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+        send_resolved: true
+```
+
+## Kubernetes Monitoring with kube-prometheus-stack
+
+If you are running Kubernetes, the fastest path to complete monitoring is the `kube-prometheus-stack` Helm chart. It installs Prometheus, Grafana, Alertmanager, Node Exporter, kube-state-metrics, and a collection of pre-built dashboards and alert rules — all in one command.
+
+```bash
+# Add the Helm repository
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
+# Install the complete monitoring stack
+helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+  --namespace monitoring \
+  --create-namespace \
+  --set grafana.adminPassword=admin123 \
+  --set prometheus.prometheusSpec.retention=15d
+
+# Access Grafana locally
+kubectl port-forward -n monitoring svc/kube-prometheus-stack-grafana 3000:80
+```
+
+This single Helm install gives you:
+- Kubernetes node metrics (CPU, memory, disk, network per node)
+- Pod and container metrics (resource usage, restarts, status)
+- Kubernetes API server and scheduler metrics
+- Pre-built dashboards for every component
+- Alert rules for common Kubernetes failure scenarios
+- Automatic discovery of services that expose metrics
+
+## Importing Community Grafana Dashboards
+
+Grafana has a public dashboard library with thousands of community-contributed dashboards. Instead of building from scratch, import proven dashboards:
+
+1. Go to **Dashboards → New → Import**
+2. Enter the dashboard ID
+3. Select your Prometheus data source
+4. Click Import
+
+Essential dashboard IDs to import:
+
+| Dashboard | ID | What it shows |
+|---|---|---|
+| Node Exporter Full | 1860 | Complete server metrics |
+| Kubernetes Cluster | 15661 | Cluster-wide overview |
+| Kubernetes Pods | 6417 | Per-pod resource usage |
+| Docker Compose | 11467 | Docker Compose monitoring |
+| Redis | 11835 | Redis performance |
+| PostgreSQL | 9628 | PostgreSQL database |
+
+## The Four Golden Signals: What to Actually Monitor
+
+Google's Site Reliability Engineering team defined four metrics that matter most for any service. Build your dashboards and alerts around these before anything else:
+
+**Latency** — How long does it take to serve a request? Do not track averages — track p95 and p99. An average response time of 100ms is meaningless if 1% of requests take 10 seconds. Use histogram metrics and `histogram_quantile()` to get accurate percentiles.
+
+**Traffic** — How many requests per second is your service handling? This is your baseline for capacity planning and helps you understand whether a problem is caused by load or by a bug.
+
+**Errors** — What percentage of requests are failing? Even a 0.1% error rate is thousands of failed requests per day at scale. Alert on error rate, not just error count.
+
+**Saturation** — How close to capacity is your service? CPU at 95%, memory at 90%, disk at 99%, connection pool exhausted — these are saturation signals. Alert before you hit 100%.
+
+Everything else you monitor is supporting detail. The Golden Signals tell you whether your users are being affected right now.
+
+## Recommended Course
+
+If you want to master Prometheus and Grafana from the ground up — including deep PromQL, production alerting patterns, Kubernetes monitoring, and building professional dashboards that actually help on-call engineers — [Prometheus: The Complete Guide](https://trk.udemy.com/KBj4qN) on Udemy is one of the most hands-on courses available. It covers real-world setups you can apply directly to your infrastructure.
+
+## Summary
+
+Prometheus and Grafana are the foundation of modern infrastructure observability. Once you have them running, you will wonder how you managed production without them.
+
+The key ideas to internalize:
+
+- Prometheus **pulls** metrics by scraping your services every 15 seconds
+- Grafana **visualizes** those metrics — it does not store them
+- Understand the four metric types: **counter**, **gauge**, **histogram**, **summary**
+- Use `rate()` for counters; direct queries for gauges
+- Alert on **rate of change**, not raw values where possible
+- Add a `for` duration to every alert to filter out brief spikes
+- Focus monitoring on the **4 Golden Signals**: latency, traffic, errors, saturation
+
+Start with Node Exporter for system metrics and the kube-prometheus-stack for Kubernetes. Add application metrics to your services as you go. Build dashboards around what matters to your users, and set up alerts before you need them.
+
+---
+
+*Found this useful? Share it with your team. Questions or feedback? [hello@devopsboys.com](mailto:hello@devopsboys.com)*
