@@ -51,6 +51,9 @@ export const metadata: Metadata = {
     follow: true,
     googleBot: { index: true, follow: true },
   },
+  other: {
+    "impact-site-verification": "00477302-97b7-4682-b980-73c7eba5d2e9",
+  },
 }
 
 export default function RootLayout({
