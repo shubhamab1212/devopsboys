@@ -6,7 +6,7 @@ import { CopyBtn } from "@/components/cheatsheet-copy-btn"
 import fs from "fs"
 import path from "path"
 
-const SLUGS = ["docker", "kubernetes", "aws", "git"]
+const SLUGS = ["docker", "kubernetes", "aws", "git", "terraform"]
 
 interface Command { cmd: string; desc: string }
 interface Section  { title: string; commands: Command[] }
@@ -17,6 +17,7 @@ const colorMap: Record<string, { badge: string; heading: string; dot: string }> 
   violet:  { badge: "bg-violet-500/10 text-violet-400 border-violet-500/20", heading: "text-violet-400", dot: "bg-violet-500" },
   orange:  { badge: "bg-orange-500/10 text-orange-400 border-orange-500/20", heading: "text-orange-400", dot: "bg-orange-500" },
   emerald: { badge: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20", heading: "text-emerald-400", dot: "bg-emerald-500" },
+  cyan:    { badge: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",       heading: "text-cyan-400",    dot: "bg-cyan-500" },
 }
 
 export async function generateStaticParams() {

@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { Terminal, Container, Layers, Cloud, GitBranch, ChevronRight, BookOpen } from "lucide-react"
+import { Terminal, Container, Layers, Cloud, GitBranch, ChevronRight, BookOpen, Wrench } from "lucide-react"
 
 export const metadata: Metadata = {
   title: "DevOps Cheatsheets",
@@ -56,9 +56,21 @@ const cheatsheets = [
     sections: 6,
     commands: 57,
   },
+  {
+    slug: "terraform",
+    label: "Terraform",
+    description: "Init, plan, apply, state management, workspaces, modules, imports, and debugging commands.",
+    icon: Wrench,
+    iconBg: "bg-cyan-500/10",
+    iconColor: "text-cyan-400",
+    border: "border-cyan-500/20 hover:border-cyan-500/50",
+    gradient: "from-cyan-500/10 to-transparent",
+    sections: 8,
+    commands: 56,
+  },
 ]
 
-const comingSoon = ["Terraform", "Helm", "Linux", "Nginx", "Prometheus"]
+const comingSoon = ["Helm", "Linux", "Nginx", "Prometheus"]
 
 export default function CheatsheetLandingPage() {
   return (

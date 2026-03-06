@@ -1,0 +1,109 @@
+{
+  "slug": "terraform",
+  "label": "Terraform",
+  "color": "cyan",
+  "description": "Terraform commands for init, plan, apply, state management, workspaces, modules, and production workflows.",
+  "sections": [
+    {
+      "title": "Setup & Authentication",
+      "commands": [
+        { "cmd": "terraform version", "desc": "Show installed Terraform version" },
+        { "cmd": "terraform -install-autocomplete", "desc": "Enable shell tab completion" },
+        { "cmd": "export AWS_ACCESS_KEY_ID=xxx", "desc": "Set AWS credentials via env var" },
+        { "cmd": "export AWS_SECRET_ACCESS_KEY=xxx", "desc": "Set AWS secret via env var" },
+        { "cmd": "export AWS_DEFAULT_REGION=us-east-1", "desc": "Set default AWS region" },
+        { "cmd": "aws configure", "desc": "Configure AWS credentials interactively" }
+      ]
+    },
+    {
+      "title": "Core Workflow",
+      "commands": [
+        { "cmd": "terraform init", "desc": "Initialize working directory, download providers" },
+        { "cmd": "terraform init -upgrade", "desc": "Upgrade providers to latest allowed version" },
+        { "cmd": "terraform init -reconfigure", "desc": "Reinitialize backend configuration" },
+        { "cmd": "terraform validate", "desc": "Check configuration for syntax errors" },
+        { "cmd": "terraform fmt", "desc": "Reformat .tf files to canonical style" },
+        { "cmd": "terraform fmt -check", "desc": "Check formatting without modifying files" },
+        { "cmd": "terraform fmt -recursive", "desc": "Format all .tf files in subdirectories too" },
+        { "cmd": "terraform plan", "desc": "Preview changes before applying" },
+        { "cmd": "terraform plan -out=tfplan", "desc": "Save plan to file for later apply" },
+        { "cmd": "terraform plan -var-file=prod.tfvars", "desc": "Plan using specific variable file" },
+        { "cmd": "terraform apply", "desc": "Apply changes to infrastructure" },
+        { "cmd": "terraform apply tfplan", "desc": "Apply a previously saved plan file" },
+        { "cmd": "terraform apply -auto-approve", "desc": "Apply without interactive confirmation prompt" },
+        { "cmd": "terraform destroy", "desc": "Destroy all managed infrastructure" },
+        { "cmd": "terraform destroy -auto-approve", "desc": "Destroy without confirmation (careful!)" }
+      ]
+    },
+    {
+      "title": "State Management",
+      "commands": [
+        { "cmd": "terraform show", "desc": "Show current state or a saved plan" },
+        { "cmd": "terraform state list", "desc": "List all resources in state" },
+        { "cmd": "terraform state show aws_instance.web", "desc": "Show details of a specific resource" },
+        { "cmd": "terraform state pull", "desc": "Download and print remote state" },
+        { "cmd": "terraform state push terraform.tfstate", "desc": "Upload local state to remote backend" },
+        { "cmd": "terraform state rm aws_instance.web", "desc": "Remove resource from state (keeps real infra)" },
+        { "cmd": "terraform state mv aws_instance.old aws_instance.new", "desc": "Rename resource in state without recreating" },
+        { "cmd": "terraform refresh", "desc": "Sync state with real infrastructure" },
+        { "cmd": "terraform force-unlock LOCK_ID", "desc": "Release a stuck state lock" }
+      ]
+    },
+    {
+      "title": "Variables & Outputs",
+      "commands": [
+        { "cmd": "terraform apply -var=\"region=us-east-1\"", "desc": "Pass single variable on command line" },
+        { "cmd": "terraform apply -var-file=staging.tfvars", "desc": "Pass all variables from a .tfvars file" },
+        { "cmd": "export TF_VAR_region=us-east-1", "desc": "Set variable via environment variable" },
+        { "cmd": "terraform output", "desc": "Show all output values from state" },
+        { "cmd": "terraform output instance_ip", "desc": "Show a specific output value" },
+        { "cmd": "terraform output -json", "desc": "Show all outputs in JSON format" },
+        { "cmd": "terraform output -raw instance_ip", "desc": "Show raw output value (no quotes)" }
+      ]
+    },
+    {
+      "title": "Targeting & Importing",
+      "commands": [
+        { "cmd": "terraform plan -target=aws_instance.web", "desc": "Plan only for a specific resource" },
+        { "cmd": "terraform apply -target=aws_instance.web", "desc": "Apply only a specific resource" },
+        { "cmd": "terraform destroy -target=aws_instance.web", "desc": "Destroy only a specific resource" },
+        { "cmd": "terraform import aws_instance.web i-1234567890abcdef0", "desc": "Import existing resource into state" },
+        { "cmd": "terraform import -var-file=prod.tfvars aws_s3_bucket.main my-bucket", "desc": "Import resource using variable file" }
+      ]
+    },
+    {
+      "title": "Workspaces",
+      "commands": [
+        { "cmd": "terraform workspace list", "desc": "List all workspaces" },
+        { "cmd": "terraform workspace show", "desc": "Show current workspace name" },
+        { "cmd": "terraform workspace new staging", "desc": "Create and switch to new workspace" },
+        { "cmd": "terraform workspace select production", "desc": "Switch to an existing workspace" },
+        { "cmd": "terraform workspace delete staging", "desc": "Delete a workspace (must not be current)" }
+      ]
+    },
+    {
+      "title": "Modules",
+      "commands": [
+        { "cmd": "terraform get", "desc": "Download and install modules from config" },
+        { "cmd": "terraform init -upgrade", "desc": "Update modules to latest allowed versions" },
+        { "cmd": "terraform plan -target=module.vpc", "desc": "Plan changes only for a specific module" },
+        { "cmd": "terraform apply -target=module.vpc", "desc": "Apply changes only for a specific module" },
+        { "cmd": "terraform destroy -target=module.vpc", "desc": "Destroy only a specific module" },
+        { "cmd": "terraform state list | grep module.vpc", "desc": "List all resources inside a module" }
+      ]
+    },
+    {
+      "title": "Debugging & Logs",
+      "commands": [
+        { "cmd": "TF_LOG=DEBUG terraform plan", "desc": "Run with debug-level logging" },
+        { "cmd": "TF_LOG=TRACE terraform apply", "desc": "Run with full trace logging (most verbose)" },
+        { "cmd": "TF_LOG_PATH=./terraform.log terraform plan", "desc": "Write logs to a file instead of stdout" },
+        { "cmd": "terraform graph", "desc": "Output resource dependency graph (DOT format)" },
+        { "cmd": "terraform graph | dot -Tsvg > graph.svg", "desc": "Render dependency graph as SVG image" },
+        { "cmd": "terraform console", "desc": "Open interactive REPL to test expressions" },
+        { "cmd": "terraform providers", "desc": "List all required providers for current config" },
+        { "cmd": "terraform providers lock", "desc": "Lock provider versions in .terraform.lock.hcl" }
+      ]
+    }
+  ]
+}
