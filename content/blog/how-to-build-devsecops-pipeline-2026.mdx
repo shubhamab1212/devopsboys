@@ -1,0 +1,585 @@
+---
+title: "How to Build a DevSecOps Pipeline from Scratch in 2026 (GitHub Actions + Trivy + SAST)"
+description: "A step-by-step guide to building a complete DevSecOps pipeline. Learn how to embed security scanning, SAST, secrets detection, and container vulnerability scanning into your CI/CD workflow using GitHub Actions."
+date: 2026-03-20
+published: true
+tags: [cicd, devops, docker, kubernetes]
+author: DevOpsBoys
+---
+
+Security used to be the last step before release. A separate team ran scans, filed tickets, and blocked deployments. This created a painful cycle: developers wrote code for weeks, security found problems on day 60, and everyone scrambled to patch issues that would have taken 10 minutes to fix on day 1.
+
+DevSecOps shifts security left — into the pipeline, into the developer workflow, into every pull request. Not as an afterthought, but as a built-in gate that gives developers immediate feedback while the context is still fresh.
+
+This guide walks you through building a complete DevSecOps pipeline from scratch using GitHub Actions, covering every layer of security: code, dependencies, secrets, and containers.
+
+---
+
+## What a DevSecOps Pipeline Looks Like
+
+Before writing any YAML, understand what you are building. A complete DevSecOps pipeline has security checks at four distinct stages:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     DevSecOps Pipeline                          │
+├──────────────┬──────────────┬──────────────┬────────────────────┤
+│  Code Stage  │  Build Stage │  Image Stage │  Deploy Stage      │
+│              │              │              │                    │
+│ SAST         │ Dependency   │ Container    │ K8s manifest       │
+│ (static      │ audit        │ image scan   │ validation         │
+│ analysis)    │ (SCA)        │ (Trivy)      │ (Checkov)          │
+│              │              │              │                    │
+│ Secrets      │ License      │ Image        │ Runtime policy     │
+│ detection    │ checking     │ signing      │ enforcement        │
+│ (Gitleaks)   │              │ (Cosign)     │ (OPA)              │
+└──────────────┴──────────────┴──────────────┴────────────────────┘
+```
+
+Each stage catches different categories of vulnerabilities. Missing any one of them leaves a gap that attackers exploit.
+
+---
+
+## Prerequisites
+
+You need:
+- A GitHub repository with your application code
+- A `Dockerfile` in the repository root
+- Kubernetes manifests in a `k8s/` directory (optional but covered)
+- GitHub Actions enabled on the repository
+
+No additional accounts or paid tools required — every tool in this guide is free and open-source.
+
+---
+
+## Step 1: Set Up the Base Pipeline Structure
+
+Create the pipeline file. This will be the foundation everything else plugs into.
+
+Create `.github/workflows/devsecops.yml`:
+
+```yaml
+name: DevSecOps Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  # Jobs will be added in the steps below
+```
+
+The pipeline triggers on every push to `main` and `develop`, and on every pull request targeting `main`. Pull request triggering is critical — you want security feedback before code merges, not after.
+
+---
+
+## Step 2: Add Secrets Detection with Gitleaks
+
+Hardcoded secrets in source code are one of the most common and costly security mistakes. API keys, database passwords, and private keys accidentally committed to Git repositories expose organizations to breaches that are completely avoidable.
+
+Gitleaks scans every commit for patterns matching known secret formats — AWS access keys, GitHub tokens, private keys, JWT secrets, and hundreds of others.
+
+Add the first job to your pipeline:
+
+```yaml
+jobs:
+  secrets-scan:
+    name: Secrets Detection
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # Full history needed to scan all commits
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+Why `fetch-depth: 0`? By default, GitHub Actions does a shallow clone of just the latest commit. Gitleaks needs the full commit history to catch secrets that were committed and later deleted — those secrets are still in the Git history and still compromised.
+
+When Gitleaks finds a secret, it fails the pipeline immediately and shows the file, line number, and type of secret detected. Fix it before the branch can merge.
+
+**What to do if Gitleaks flags a false positive**: create a `.gitleaks.toml` configuration file to allowlist specific patterns:
+
+```toml
+[allowlist]
+  regexes = [
+    '''EXAMPLE_KEY_FOR_DOCS'''   # Allowlist specific strings
+  ]
+  paths = [
+    '''tests/fixtures/'''        # Allowlist entire directories
+  ]
+```
+
+---
+
+## Step 3: Static Application Security Testing (SAST)
+
+SAST analyzes your source code without executing it, looking for security vulnerabilities like SQL injection, XSS, insecure cryptography, and dangerous function calls.
+
+The right SAST tool depends on your language:
+
+**For Python**: Bandit
+**For JavaScript/TypeScript**: ESLint with security plugins, or Semgrep
+**For Go**: gosec
+**For Java**: SpotBugs with FindSecBugs
+
+For a universal approach that works across languages, **Semgrep** is the best choice. It has rules for every major language and framework and runs in GitHub Actions without any configuration.
+
+Add the SAST job:
+
+```yaml
+  sast:
+    name: Static Code Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/security-audit
+            p/owasp-top-ten
+            p/docker
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+```
+
+The `config` field selects which rule sets to run. `p/security-audit` covers general security issues, `p/owasp-top-ten` covers the OWASP Top 10, and `p/docker` checks Dockerfile security.
+
+For the free tier, Semgrep does not require a token for open-source repositories — remove the `env` section if you want to run without an account:
+
+```yaml
+      - name: Run Semgrep (no account required)
+        run: |
+          pip install semgrep
+          semgrep --config=p/security-audit --config=p/owasp-top-ten .
+```
+
+---
+
+## Step 4: Dependency Vulnerability Scanning (SCA)
+
+Your application's dependencies are attack surface you did not write. A vulnerability in a library you imported can be just as damaging as a vulnerability in your own code.
+
+Software Composition Analysis (SCA) checks your dependencies against known vulnerability databases (CVE, GitHub Advisory Database, NVD).
+
+For Node.js projects:
+
+```yaml
+  dependency-scan:
+    name: Dependency Vulnerability Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: npm audit --audit-level=high
+        # Fails on HIGH or CRITICAL vulnerabilities
+        # Use --audit-level=moderate to also catch medium severity
+```
+
+For Python projects, use `pip-audit`:
+
+```yaml
+      - name: Run pip-audit
+        run: |
+          pip install pip-audit
+          pip-audit --severity high
+```
+
+For a more comprehensive scan with detailed reports, **OWASP Dependency-Check** integrates with most build systems:
+
+```yaml
+      - name: OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'my-app'
+          path: '.'
+          format: 'HTML'
+          args: >
+            --failOnCVSS 7
+            --enableRetired
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: reports/
+```
+
+---
+
+## Step 5: Build the Docker Image
+
+Now build the container image. This goes between the code-level scans and the image-level scans.
+
+```yaml
+  build-image:
+    name: Build Container Image
+    runs-on: ubuntu-latest
+    needs: [secrets-scan, sast, dependency-scan]
+    # Only build if all security checks pass
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+```
+
+The `needs: [secrets-scan, sast, dependency-scan]` line is critical. The image only builds if all three security scans pass. This prevents building and potentially deploying an image that contains known vulnerabilities.
+
+---
+
+## Step 6: Scan the Container Image with Trivy
+
+Trivy (by Aqua Security) is the industry standard for container image scanning. It checks the OS packages and application libraries inside your image against vulnerability databases, and identifies misconfigurations in Dockerfiles.
+
+```yaml
+  image-scan:
+    name: Container Image Scan
+    runs-on: ubuntu-latest
+    needs: [build-image]
+
+    steps:
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ghcr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'           # Fail pipeline on findings
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()              # Upload even if scan found issues
+        with:
+          sarif_file: 'trivy-results.sarif'
+```
+
+The `format: 'sarif'` option outputs results in a format that GitHub understands. Uploading to the Security tab means every finding appears directly in your repository's Security → Code scanning section — no separate dashboard to check.
+
+Why scan the image and not just the code? Because the base image you pulled (`ubuntu:22.04`, `node:20-alpine`, etc.) might have vulnerabilities in its OS packages that no amount of code scanning would catch.
+
+**Choosing a minimal base image** is the single most effective way to reduce your Trivy finding count:
+
+```dockerfile
+# Instead of this (hundreds of packages, many CVEs)
+FROM node:20
+
+# Use this (Alpine Linux, minimal attack surface)
+FROM node:20-alpine
+
+# Or this (literally nothing except your binary)
+FROM gcr.io/distroless/nodejs20-debian12
+```
+
+Distroless images contain only the runtime and your application — no shell, no package manager, no utilities. An attacker who compromises the container has almost nothing to work with.
+
+---
+
+## Step 7: Sign the Image with Cosign
+
+Image signing proves that a container image was built by your trusted pipeline and has not been tampered with between build and deployment.
+
+Without signing, anyone who can write to your container registry can push a malicious image with the same tag. With signing, your deployment system can verify that every image carries a valid cryptographic signature from your CI pipeline before running it.
+
+```yaml
+  sign-image:
+    name: Sign Container Image
+    runs-on: ubuntu-latest
+    needs: [image-scan]
+    permissions:
+      id-token: write    # Required for keyless signing with Sigstore
+
+    steps:
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Log in to registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sign the image (keyless, using GitHub OIDC)
+        run: |
+          cosign sign --yes \
+            ghcr.io/${{ env.IMAGE_NAME }}@${{ needs.build-image.outputs.image-digest }}
+```
+
+Keyless signing uses GitHub's OIDC token to sign — no private keys to manage or rotate. The signature is stored in Sigstore's public transparency log and can be verified by anyone.
+
+To verify an image signature before deploying:
+
+```bash
+cosign verify \
+  --certificate-identity-regexp="https://github.com/your-org/your-repo" \
+  --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
+  ghcr.io/your-org/your-image:tag
+```
+
+---
+
+## Step 8: Scan Kubernetes Manifests with Checkov
+
+If you are deploying to Kubernetes, your Kubernetes manifests are security configuration. Misconfigurations here are just as dangerous as vulnerable code.
+
+Checkov scans Infrastructure as Code files (Kubernetes YAML, Terraform, Helm charts) for security misconfigurations:
+
+```yaml
+  iac-scan:
+    name: IaC Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Checkov on Kubernetes manifests
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: k8s/
+          framework: kubernetes
+          soft_fail: false
+          output_format: cli,sarif
+          output_file_path: console,checkov-results.sarif
+
+      - name: Upload results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: checkov-results.sarif
+```
+
+Common Checkov findings in Kubernetes manifests:
+
+- Container running as root (`runAsNonRoot: false`)
+- No resource limits set (CPU/memory)
+- Container has dangerous capabilities (`NET_ADMIN`, `SYS_ADMIN`)
+- Secrets passed as environment variables instead of Kubernetes Secrets
+- `hostPID: true` or `hostNetwork: true` (namespace escapes)
+
+Each finding comes with a `CKV_K8S_*` identifier and a direct explanation of the risk, making it easy to know exactly what to fix.
+
+---
+
+## Step 9: The Complete Pipeline
+
+Here is the full `.github/workflows/devsecops.yml` with all stages wired together:
+
+```yaml
+name: DevSecOps Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  secrets-scan:
+    name: Secrets Detection
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  sast:
+    name: SAST Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          pip install semgrep
+          semgrep --config=p/security-audit --config=p/owasp-top-ten --error .
+
+  dependency-scan:
+    name: Dependency Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npm audit --audit-level=high
+
+  iac-scan:
+    name: IaC Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: k8s/
+          framework: kubernetes
+
+  build-image:
+    name: Build Image
+    runs-on: ubuntu-latest
+    needs: [secrets-scan, sast, dependency-scan]
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  image-scan:
+    name: Image Scan
+    runs-on: ubuntu-latest
+    needs: [build-image]
+    steps:
+      - uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ghcr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+
+  sign-image:
+    name: Sign Image
+    runs-on: ubuntu-latest
+    needs: [image-scan, iac-scan]
+    permissions:
+      id-token: write
+    steps:
+      - uses: sigstore/cosign-installer@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - run: |
+          cosign sign --yes \
+            ghcr.io/${{ env.IMAGE_NAME }}@${{ needs.build-image.outputs.image-digest }}
+
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [sign-image]
+    if: github.ref == 'refs/heads/main'   # Only deploy from main branch
+    steps:
+      - name: Deploy
+        run: echo "Add your deployment steps here"
+```
+
+The final pipeline has a clear security gate before deployment. Nothing reaches production unless it passes secrets detection, SAST, dependency scanning, container scanning, IaC scanning, and image signing.
+
+---
+
+## Understanding the Security Coverage
+
+| Threat | Tool | When It Runs |
+|---|---|---|
+| Hardcoded secrets | Gitleaks | Every push, full history |
+| Code vulnerabilities | Semgrep | Every push |
+| Vulnerable dependencies | npm audit / pip-audit | Every push |
+| Container OS CVEs | Trivy | After build |
+| K8s misconfigurations | Checkov | Every push |
+| Image tampering | Cosign | After image scan passes |
+
+This covers the most common attack vectors in a modern application stack. It does not cover runtime security (Falco, for in-cluster threat detection) or network policy — those are the next layer after you have the pipeline security solid.
+
+---
+
+## Making It Developer-Friendly
+
+Security pipelines that slow development get bypassed or disabled. A few practices that keep the pipeline fast and the team on-side:
+
+**Run scans in parallel** — the jobs above all run concurrently where possible. Total pipeline time is roughly the longest single job, not the sum of all jobs.
+
+**Distinguish blocking vs reporting** — use `exit-code: '1'` only for CRITICAL and HIGH severity issues. Log MEDIUM severity to the Security tab without blocking.
+
+**Provide fix guidance** — every scan tool outputs links to CVE details and remediation steps. Make sure findings are visible in the PR conversation, not buried in logs.
+
+**Start with audit mode** — if you are adding DevSecOps to an existing pipeline, use `--exit-code 0` initially and log findings without blocking. Fix the backlog, then switch to blocking mode.
+
+---
+
+## Keep Learning
+
+Building this pipeline is the start. Understanding the vulnerabilities it catches — and how attackers exploit them — is what makes you genuinely effective at securing systems.
+
+**[KodeKloud](https://tidd.ly/4d60alA)** has dedicated DevSecOps courses that go deep on container security, Kubernetes security, and secure CI/CD pipeline design. The hands-on labs let you practice finding and exploiting vulnerabilities in a safe environment — which is the fastest way to understand why these controls matter.
+
+For a cloud environment to practice on, **[DigitalOcean](https://m.do.co/c/fb46f21445dc)** provides simple Kubernetes clusters and container registries where you can run this entire pipeline against a real application without the complexity of AWS IAM.
+
+---
+
+## What You Have Built
+
+By following this guide, you now have:
+
+- **Secrets detection** running on every commit, scanning the full Git history
+- **SAST** catching code-level security vulnerabilities before code review
+- **Dependency scanning** identifying CVEs in your third-party libraries
+- **Container image scanning** checking every layer of your Docker image
+- **IaC scanning** enforcing Kubernetes security best practices
+- **Image signing** providing cryptographic proof of image provenance
+
+This is the baseline that security-conscious engineering teams run in 2026. It catches the vast majority of vulnerabilities before they reach production, and it runs automatically — so developers get feedback in minutes, not in a security review three weeks after the code was written.
+
+Security is not a phase. It is a pipeline stage.
