@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { ThemeToggle } from "./theme-toggle"
 import { Button } from "./ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet"
-import { Menu, Terminal, ShoppingBag, Gamepad2 } from "lucide-react"
+import { Menu, Terminal, ShoppingBag, Gamepad2, Wrench } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
 import { SearchDialog } from "./search"
@@ -134,6 +134,21 @@ export function Navbar() {
             )
           })}
 
+          {/* DevTools — special pill */}
+          <Link
+            href="/devtools"
+            className={cn(
+              "relative ml-1 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 border",
+              "hover:-translate-y-0.5 hover:scale-105",
+              pathname.startsWith("/devtools")
+                ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-400 shadow-sm shadow-emerald-500/20"
+                : "border-border hover:border-emerald-500/50 hover:bg-emerald-500/10 text-muted-foreground hover:text-emerald-400 hover:shadow-md hover:shadow-emerald-500/20"
+            )}
+          >
+            <Wrench className="h-3.5 w-3.5" />
+            Tools
+          </Link>
+
           {/* Games — special pill */}
           <Link
             href="/games"
@@ -191,7 +206,7 @@ export function Navbar() {
                 </span>
               </div>
               <nav className="flex flex-col gap-1">
-                {[...navLinks, { href: "/games", label: "Games", activeText: "text-red-400", activeBg: "bg-red-500/10", hoverText: "hover:text-red-400", hoverBg: "hover:bg-red-500/10", underline: "bg-red-400", glow: "shadow-red-500/20" }, { href: "/shop", label: "Shop", activeText: "text-violet-400", activeBg: "bg-violet-500/10", hoverText: "hover:text-violet-400", hoverBg: "hover:bg-violet-500/10", underline: "bg-violet-400", glow: "shadow-violet-500/20" }].map((link) => {
+                {[...navLinks, { href: "/devtools", label: "DevTools", activeText: "text-emerald-400", activeBg: "bg-emerald-500/10", hoverText: "hover:text-emerald-400", hoverBg: "hover:bg-emerald-500/10", underline: "bg-emerald-400", glow: "shadow-emerald-500/20" }, { href: "/games", label: "Games", activeText: "text-red-400", activeBg: "bg-red-500/10", hoverText: "hover:text-red-400", hoverBg: "hover:bg-red-500/10", underline: "bg-red-400", glow: "shadow-red-500/20" }, { href: "/shop", label: "Shop", activeText: "text-violet-400", activeBg: "bg-violet-500/10", hoverText: "hover:text-violet-400", hoverBg: "hover:bg-violet-500/10", underline: "bg-violet-400", glow: "shadow-violet-500/20" }].map((link) => {
                   const isActive = pathname === link.href
                   return (
                     <Link
@@ -208,6 +223,9 @@ export function Navbar() {
                       )}
                     >
                       {link.label}
+                      {link.href === "/devtools" && (
+                        <span className="ml-2 px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">NEW</span>
+                      )}
                       {link.href === "/games" && (
                         <span className="ml-2 px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 text-[10px] font-bold">NEW</span>
                       )}
